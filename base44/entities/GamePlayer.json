@@ -4,13 +4,31 @@
   "title": "GamePlayer",
   "description": "Who joined a game. Migrated from convex/tables/games.ts `gamePlayers`.",
   "properties": {
-    "gameId": { "type": "string" },
-    "userId": { "type": "string" },
-    "name": { "type": "string" },
-    "color": { "type": "string" },
-    "joinedAt": { "type": "number" },
-    "fromRound": { "type": "number" }
+    "gameId": {
+      "type": "string"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "joinedAt": {
+      "type": "number"
+    },
+    "fromRound": {
+      "type": "number"
+    }
   },
-  "required": ["gameId", "userId", "name", "color", "joinedAt", "fromRound"],
-  "x-convex-indexes": ["by_game"]
+  "required": [
+    "gameId",
+    "userId",
+    "name",
+    "color",
+    "joinedAt",
+    "fromRound"
+  ]
 }

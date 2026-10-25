@@ -4,11 +4,24 @@
   "title": "Brief",
   "description": "The room brief a voice ask reads instead of the whole board (convex/roomBrief.ts, refreshed by cron). Migrated from convex/tables/voice.ts `briefs`.",
   "properties": {
-    "spaceId": { "type": "string" },
-    "text": { "type": "string" },
-    "facts": { "type": "string", "description": "Evidence JSON" },
-    "at": { "type": "number" }
+    "spaceId": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string"
+    },
+    "facts": {
+      "type": "string",
+      "description": "Evidence JSON"
+    },
+    "at": {
+      "type": "number"
+    }
   },
-  "required": ["spaceId", "text", "facts", "at"],
-  "x-convex-indexes": ["by_space"]
+  "required": [
+    "spaceId",
+    "text",
+    "facts",
+    "at"
+  ]
 }

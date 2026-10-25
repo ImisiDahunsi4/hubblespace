@@ -4,17 +4,47 @@
   "title": "Lease",
   "description": "Right of Way: who is holding what, right now (thing = Widget.id | 'piece:<game>:<i>') until `until`. Migrated from convex/tables/rightOfWay.ts `leases` (convex/leases.ts). NOTE: hot-path lease traffic is designed for the spaceRoom actor; this entity is the persisted record/fallback.",
   "properties": {
-    "spaceId": { "type": "string" },
-    "thing": { "type": "string" },
-    "kind": { "type": "string", "description": "drag | type | vote | piece" },
-    "userId": { "type": "string" },
-    "name": { "type": "string" },
-    "color": { "type": "string" },
-    "since": { "type": "number" },
-    "until": { "type": "number" },
-    "letGoAt": { "type": "number" },
-    "settleAt": { "type": "number" }
+    "spaceId": {
+      "type": "string"
+    },
+    "thing": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "description": "drag | type | vote | piece"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "since": {
+      "type": "number"
+    },
+    "until": {
+      "type": "number"
+    },
+    "letGoAt": {
+      "type": "number"
+    },
+    "settleAt": {
+      "type": "number"
+    }
   },
-  "required": ["spaceId", "thing", "kind", "userId", "name", "color", "since", "until", "settleAt"],
-  "x-convex-indexes": ["by_thing(spaceId, thing)"]
+  "required": [
+    "spaceId",
+    "thing",
+    "kind",
+    "userId",
+    "name",
+    "color",
+    "since",
+    "until",
+    "settleAt"
+  ]
 }

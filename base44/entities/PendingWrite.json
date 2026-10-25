@@ -4,14 +4,34 @@
   "title": "PendingWrite",
   "description": "A write told to wait — the ghost every screen draws. Migrated from convex/tables/rightOfWay.ts `pending`. `write` is its replay (JSON), `on` is the holder (JSON). Dropped after ~30s if it no longer makes sense.",
   "properties": {
-    "spaceId": { "type": "string" },
-    "thing": { "type": "string" },
-    "writeId": { "type": "string", "description": "AiWrite.id" },
-    "write": { "type": "string", "description": "replay JSON" },
-    "on": { "type": "string", "description": "holder JSON" },
-    "at": { "type": "number" }
+    "spaceId": {
+      "type": "string"
+    },
+    "thing": {
+      "type": "string"
+    },
+    "writeId": {
+      "type": "string",
+      "description": "AiWrite.id"
+    },
+    "write": {
+      "type": "string",
+      "description": "replay JSON"
+    },
+    "on": {
+      "type": "string",
+      "description": "holder JSON"
+    },
+    "at": {
+      "type": "number"
+    }
   },
-  "required": ["spaceId", "thing", "writeId", "write", "on", "at"],
-  "x-convex-indexes": ["by_thing(spaceId, thing)"],
-  "x-convex-table": "pending"
+  "required": [
+    "spaceId",
+    "thing",
+    "writeId",
+    "write",
+    "on",
+    "at"
+  ]
 }

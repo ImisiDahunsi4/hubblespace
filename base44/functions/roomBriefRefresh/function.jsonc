@@ -1,16 +1,4 @@
 {
   "name": "roomBriefRefresh",
-  "entry": "entry.ts",
-  "automations": [
-    {
-      "type": "scheduled",
-      "name": "room_briefs",
-      "description": "Every 10 minutes — refresh Brief rows for rooms with activity (was convex/crons.ts 'room briefs').",
-      "is_active": true,
-      "schedule_mode": "recurring",
-      "schedule_type": "simple",
-      "repeat_unit": "minutes",
-      "repeat_interval": 10
-    }
-  ]
+  "entry": "entry.ts"
 }

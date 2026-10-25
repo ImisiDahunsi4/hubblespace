@@ -4,15 +4,39 @@
   "title": "Award",
   "description": "Stickers a round gave out. Migrated from convex/tables/games.ts `awards`.",
   "properties": {
-    "spaceId": { "type": "string" },
-    "gameId": { "type": "string" },
-    "to": { "type": "string" },
-    "title": { "type": "string" },
-    "glyph": { "type": "string" },
-    "prompt": { "type": "string" },
-    "tone": { "type": "number" },
-    "at": { "type": "number" }
+    "spaceId": {
+      "type": "string"
+    },
+    "gameId": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "glyph": {
+      "type": "string"
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "tone": {
+      "type": "number"
+    },
+    "at": {
+      "type": "number"
+    }
   },
-  "required": ["spaceId", "gameId", "to", "title", "glyph", "prompt", "tone", "at"],
-  "x-convex-indexes": ["by_space(spaceId, at)"]
+  "required": [
+    "spaceId",
+    "gameId",
+    "to",
+    "title",
+    "glyph",
+    "prompt",
+    "tone",
+    "at"
+  ]
 }

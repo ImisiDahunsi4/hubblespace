@@ -4,29 +4,68 @@
   "title": "InboundMessage",
   "description": "Every inbound AgentMail message, queryable per inbox (thread views, audit). Migrated from convex/components/agentMail/schema.ts `inboundMessages`. Ids are AgentMail's own strings — never app entity ids.",
   "properties": {
-    "messageId": { "type": "string" },
-    "threadId": { "type": "string" },
-    "inboxId": { "type": "string" },
-    "from": { "type": "string" },
-    "to": { "type": "string" },
-    "subject": { "type": "string" },
-    "text": { "type": "string" },
-    "labels": { "type": "array", "items": { "type": "string" } },
+    "messageId": {
+      "type": "string"
+    },
+    "threadId": {
+      "type": "string"
+    },
+    "inboxId": {
+      "type": "string"
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "attachments": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "attachmentId": { "type": "string" },
-          "filename": { "type": "string" },
-          "contentType": { "type": "string" },
-          "size": { "type": "number" },
-          "inline": { "type": "boolean" }
+          "attachmentId": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "inline": {
+            "type": "boolean"
+          }
         }
       }
     },
-    "receivedAt": { "type": "number" }
+    "receivedAt": {
+      "type": "number"
+    }
   },
-  "required": ["messageId", "inboxId", "from", "to", "subject", "text", "labels", "receivedAt"],
-  "x-convex-indexes": ["by_messageId", "by_inbox"]
+  "required": [
+    "messageId",
+    "inboxId",
+    "from",
+    "to",
+    "subject",
+    "text",
+    "labels",
+    "receivedAt"
+  ]
 }

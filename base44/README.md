@@ -7,8 +7,9 @@ This directory is the Base44 half of the repo (see
 ```
 base44/
 ├── config.jsonc          # project config (name, dirs, site build)
-├── .app.jsonc            # app link — created by `base44 link`, gitignored
-├── entities/             # 31 JSON schemas mapped 1:1 from convex/tables/*
+├── base44/.app.jsonc     # app link — created by `base44 link`, gitignored
+├── entities/             # 32 JSON schemas mapped from convex/tables/* — PUSHED
+├── workflows/            # scheduled-job definitions (API-managed — see below)
 ├── functions/            # backend functions (SKELETONS — see functions/README.md)
 │   ├── _shared/          # vendored domain code (rightOfWay gate, deck, seat…)
 │   ├── rightOfWayDoor/   # the one door every AI write passes
@@ -27,14 +28,24 @@ base44/
     └── config.jsonc      # email/password + Google login
 ```
 
-## Setup (requires a Base44 account)
+## Deployed state
+
+Linked app: `6ade2063a43a5acbc2adbd10` → https://hubblespace-c2adbd10.base44.app
+Already pushed: 32 entities, 10 functions, `spaceRoom` actor, auth config,
+site. Scheduled jobs are **workflows** (this app has Workflows enabled —
+`automations` blocks in `function.jsonc` are rejected); definitions live in
+`workflows/*.json`, applied via
+`base44 api fetch POST /api/apps/{app_id}/workflows --body @workflows/<name>.json`.
+Five are active, matching `convex/crons.ts` — see doc 10.
+
+## Setup (fresh checkout)
 
 ```bash
 base44 login
-base44 link                 # or: base44 scaffold hubblespace --app-id <id>
+cd base44 && base44 link --app-id 6ade2063a43a5acbc2adbd10
 base44 entities push        # deploy the schemas in entities/
 base44 secrets set NEBIUS_API_KEY=...   # etc — see docs/migration/07
-base44 deploy               # functions + actors + automations + site
+base44 deploy               # functions + actors + auth + site
 ```
 
 ## What is intentionally NOT here

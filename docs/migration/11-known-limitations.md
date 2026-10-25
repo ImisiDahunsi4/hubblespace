@@ -45,11 +45,28 @@ Honest list — updated as migration proceeds.
 - Join flow: Convex required a page reload after token upgrade; verify
   whether Base44 needs the same (likely not — token handling differs).
 
+## Platform facts learned by doing (not in docs)
+
+- **Workflows, not automations.** New apps have Workflows enabled;
+  `automations` blocks in `function.jsonc` fail deploy with a 409.
+  Workflow definitions are created via the beta
+  `POST /api/apps/{app_id}/workflows` API (CNCF Serverless Workflow v1.0;
+  `document.namespace` must be `"base44"`; tasks `call`/`switch`/`wait`,
+  `call: invoke_backend_function`). The CLI can only *inspect* workflows
+  (`base44 workflows list/runs`) — `base44/workflows/*.json` in this repo
+  is the source of truth and must be re-applied via `base44 api fetch` on a
+  fresh app.
+- **Entity schemas reject non-JSON-Schema keys.** `x-*` provenance
+  annotations are refused; keep provenance in `description` fields and
+  doc 03 only.
+- **Published site is the pre-port frontend.** Until the SDK rewire lands,
+  live mode on the published URL reports missing backend config; `?mock=1`
+  works as the demo path.
+
 ## Blockers needing human action
 
 | Blocker | Needs |
 |---|---|
-| Base44 app link/deploy | `base44 login` (device auth — interactive) |
 | Production data export | authorized access to Convex deployment `necessary-cobra-892` |
 | AgentMail inboxes | provision under the new org (3 max) |
 | Custom domain (optional) | DNS access for the chosen domain — not assumed |

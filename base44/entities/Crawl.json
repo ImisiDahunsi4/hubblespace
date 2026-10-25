@@ -4,27 +4,86 @@
   "title": "Crawl",
   "description": "A durable Firecrawl crawl job. Migrated from @firecrawl/firecrawl-convex component table `crawls` (see node_modules/@firecrawl/firecrawl-convex/src/component/schema.ts).",
   "properties": {
-    "spaceId": { "type": "string", "description": "owning room (app-side addition)" },
-    "jobId": { "type": "string", "description": "Firecrawl crawl job id" },
-    "url": { "type": "string" },
-    "status": { "type": "string", "description": "scrape_status union from the component: see source schema" },
-    "mode": { "type": "string", "enum": ["webhook", "poll"] },
-    "token": { "type": "string", "description": "shared secret echoed on every webhook delivery" },
-    "storeContent": { "type": "boolean" },
-    "total": { "type": "number" },
-    "completed": { "type": "number" },
-    "pageCount": { "type": "number" },
-    "creditsUsed": { "type": "number" },
-    "unstored": { "type": "number" },
-    "error": { "type": "string" },
-    "nextUrl": { "type": "string" },
-    "context": { "type": "string", "description": "opaque app data JSON" },
-    "finalized": { "type": "boolean" },
-    "pollAttempt": { "type": "number" },
-    "startedAt": { "type": "number" },
-    "updatedAt": { "type": "number" },
-    "completedAt": { "type": "number" }
+    "spaceId": {
+      "type": "string",
+      "description": "owning room (app-side addition)"
+    },
+    "jobId": {
+      "type": "string",
+      "description": "Firecrawl crawl job id"
+    },
+    "url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "description": "scrape_status union from the component: see source schema"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "webhook",
+        "poll"
+      ]
+    },
+    "token": {
+      "type": "string",
+      "description": "shared secret echoed on every webhook delivery"
+    },
+    "storeContent": {
+      "type": "boolean"
+    },
+    "total": {
+      "type": "number"
+    },
+    "completed": {
+      "type": "number"
+    },
+    "pageCount": {
+      "type": "number"
+    },
+    "creditsUsed": {
+      "type": "number"
+    },
+    "unstored": {
+      "type": "number"
+    },
+    "error": {
+      "type": "string"
+    },
+    "nextUrl": {
+      "type": "string"
+    },
+    "context": {
+      "type": "string",
+      "description": "opaque app data JSON"
+    },
+    "finalized": {
+      "type": "boolean"
+    },
+    "pollAttempt": {
+      "type": "number"
+    },
+    "startedAt": {
+      "type": "number"
+    },
+    "updatedAt": {
+      "type": "number"
+    },
+    "completedAt": {
+      "type": "number"
+    }
   },
-  "required": ["url", "status", "mode", "token", "storeContent", "pageCount", "finalized", "pollAttempt", "startedAt", "updatedAt"],
-  "x-convex-indexes": ["jobId", "status"]
+  "required": [
+    "url",
+    "status",
+    "mode",
+    "token",
+    "storeContent",
+    "pageCount",
+    "finalized",
+    "pollAttempt",
+    "startedAt",
+    "updatedAt"
+  ]
 }

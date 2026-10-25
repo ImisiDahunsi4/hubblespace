@@ -4,10 +4,19 @@
   "title": "Vote",
   "description": "One row per person per poll option. Migrated from convex/tables/rooms.ts `votes`. One-vote-per-user was enforced by the by_widget_user index + upsert — replicate with an updateMany claim or function-level upsert.",
   "properties": {
-    "widgetId": { "type": "string" },
-    "userId": { "type": "string" },
-    "optionId": { "type": "string" }
+    "widgetId": {
+      "type": "string"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "optionId": {
+      "type": "string"
+    }
   },
-  "required": ["widgetId", "userId", "optionId"],
-  "x-convex-indexes": ["by_widget", "by_widget_user", "by_user"]
+  "required": [
+    "widgetId",
+    "userId",
+    "optionId"
+  ]
 }

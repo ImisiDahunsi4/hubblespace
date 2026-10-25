@@ -4,34 +4,85 @@
   "title": "EmailEvent",
   "description": "Every mail in and out of a space's inbox. Migrated from convex/tables/mail.ts `emailEvents`. messageId/threadId are AgentMail's own string ids so the router can reply in-thread and label.",
   "properties": {
-    "spaceId": { "type": "string" },
-    "from": { "type": "string" },
-    "to": { "type": "string" },
-    "subject": { "type": "string" },
-    "summary": { "type": "string" },
-    "body": { "type": "string" },
-    "direction": { "type": "string", "enum": ["in", "out"] },
-    "widgetId": { "type": "string" },
-    "messageId": { "type": "string" },
-    "threadId": { "type": "string" },
+    "spaceId": {
+      "type": "string"
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "in",
+        "out"
+      ]
+    },
+    "widgetId": {
+      "type": "string"
+    },
+    "messageId": {
+      "type": "string"
+    },
+    "threadId": {
+      "type": "string"
+    },
     "attachments": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "filename": { "type": "string" },
-          "contentType": { "type": "string" },
-          "size": { "type": "number" },
-          "text": { "type": "string", "description": "Firecrawl-parsed document text" }
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string",
+            "description": "Firecrawl-parsed document text"
+          }
         }
       }
     },
-    "because": { "type": "string", "description": "One-sentence visible reason the router files on the canvas" },
-    "label": { "type": "string" },
-    "readingAt": { "type": "number" },
-    "repliedAt": { "type": "number" },
-    "createdAt": { "type": "number" }
+    "because": {
+      "type": "string",
+      "description": "One-sentence visible reason the router files on the canvas"
+    },
+    "label": {
+      "type": "string"
+    },
+    "readingAt": {
+      "type": "number"
+    },
+    "repliedAt": {
+      "type": "number"
+    },
+    "createdAt": {
+      "type": "number"
+    }
   },
-  "required": ["spaceId", "from", "to", "subject", "summary", "direction", "createdAt"],
-  "x-convex-indexes": ["by_space"]
+  "required": [
+    "spaceId",
+    "from",
+    "to",
+    "subject",
+    "summary",
+    "direction",
+    "createdAt"
+  ]
 }

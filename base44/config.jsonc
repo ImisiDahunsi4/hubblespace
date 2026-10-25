@@ -17,9 +17,10 @@
   "site": {
     // Vite output; `site.buildCommand` is run by `base44 build` / `deploy --build`
     // with VITE_BASE44_APP_ID injected into the frontend build.
-    "outputDirectory": "./dist",
-    "buildCommand": "npm run build",
-    "installCommand": "npm install",
-    "serveCommand": "npm run dev"
+    // The Vite app lives at the repository root, one level above this project.
+    "outputDirectory": "../dist",
+    "buildCommand": "cd .. && npm run build",
+    "installCommand": "cd .. && npm install",
+    "serveCommand": "cd .. && npm run dev"
   }
 }

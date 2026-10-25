@@ -1,9 +1,16 @@
 # Base44 backend functions — migration map
 
-Every directory here is one Base44 backend function (`entry.ts` + optional
-`function.jsonc` for automations). These are **skeletons**: each documents the
+Every directory here is one Base44 backend function (`entry.ts` +
+`function.jsonc`). These are **skeletons**: each documents the
 exact Convex source it replaces and the contract it must honor. They are not
-yet functional — see `docs/migration/00-migration-status.md` for status.
+yet functional — all 10 are deployed as stubs to app `6ade2063a43a5acbc2adbd10`.
+See `docs/migration/00-migration-status.md` for status.
+
+**Scheduling:** this app has Workflows enabled — `automations` blocks in
+`function.jsonc` are rejected (409 `workflows_enabled`). Scheduled jobs are
+workflow definitions in `../workflows/*.json`, applied via `base44 api fetch`
+(see `docs/migration/10-deployment-guide.md`). The five scheduled functions
+above are plain functions invoked by their matching workflows.
 
 Runtime: Deno. Per request, `createClientFromRequest(req)` gives a client
 scoped to the caller; `base44.asServiceRole` bypasses entity RLS and MUST only

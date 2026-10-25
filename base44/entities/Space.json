@@ -4,26 +4,75 @@
   "title": "Space",
   "description": "A shared room. Migrated from convex/tables/rooms.ts `spaces`. ownerId unset on seeded showcase spaces means nobody can rename/delete from the client — keep that semantics in backend functions.",
   "properties": {
-    "name": { "type": "string" },
-    "type": { "type": "string", "enum": ["ongoing", "event"] },
-    "icon": { "type": "string" },
-    "color": { "type": "string" },
-    "createdAt": { "type": "number" },
-    "lastActivityAt": { "type": "number" },
-    "eventAt": { "type": "number" },
-    "archivedAt": { "type": "number" },
-    "slug": { "type": "string" },
-    "canvasW": { "type": "number" },
-    "canvasH": { "type": "number" },
-    "tagline": { "type": "string" },
-    "inboxId": { "type": "string", "description": "AgentMail inbox id" },
-    "inboxAddress": { "type": "string" },
-    "askThreadId": { "type": "string", "description": "Agent thread id for 'ask the space'" },
-    "ragIndexedAt": { "type": "number" },
-    "ownerId": { "type": "string", "description": "Base44 user id of the creator; unset = locked showcase room" },
-    "door": { "type": "boolean", "description": "Absent/true = gate card shown; false = straight in" }
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "ongoing",
+        "event"
+      ]
+    },
+    "icon": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "number"
+    },
+    "lastActivityAt": {
+      "type": "number"
+    },
+    "eventAt": {
+      "type": "number"
+    },
+    "archivedAt": {
+      "type": "number"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "canvasW": {
+      "type": "number"
+    },
+    "canvasH": {
+      "type": "number"
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "inboxId": {
+      "type": "string",
+      "description": "AgentMail inbox id"
+    },
+    "inboxAddress": {
+      "type": "string"
+    },
+    "askThreadId": {
+      "type": "string",
+      "description": "Agent thread id for 'ask the space'"
+    },
+    "ragIndexedAt": {
+      "type": "number"
+    },
+    "ownerId": {
+      "type": "string",
+      "description": "Base44 user id of the creator; unset = locked showcase room"
+    },
+    "door": {
+      "type": "boolean",
+      "description": "Absent/true = gate card shown; false = straight in"
+    }
   },
-  "required": ["name", "type", "icon", "color", "createdAt", "lastActivityAt"],
-  "x-convex-indexes": ["by_name", "by_slug", "by_inbox", "by_owner"],
-  "x-migration": "v.id('spaces') -> this entity's id. Keep slug unique by convention in functions (no unique constraints on Base44)."
+  "required": [
+    "name",
+    "type",
+    "icon",
+    "color",
+    "createdAt",
+    "lastActivityAt"
+  ]
 }

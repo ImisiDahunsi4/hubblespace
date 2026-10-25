@@ -4,8 +4,12 @@
   "title": "Waitlist",
   "description": "Landing-page email signups. Migrated from convex/tables/rooms.ts `waitlist`.",
   "properties": {
-    "email": { "type": "string", "format": "email" }
+    "email": {
+      "type": "string",
+      "format": "email"
+    }
   },
-  "required": ["email"],
-  "x-convex-indexes": ["by_email"]
+  "required": [
+    "email"
+  ]
 }

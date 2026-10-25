@@ -1,0 +1,31 @@
+{
+  "name": "room_briefs",
+  "description": "Every 10 minutes \u2014 refresh Brief rows for rooms with activity (was convex/crons.ts 'room briefs').",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "room_briefs",
+      "namespace": "base44",
+      "version": "1.0.0"
+    },
+    "do": [
+      {
+        "invoke": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "roomBriefRefresh"
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "config": {
+      "cron_expression": "*/10 * * * *",
+      "timezone": "UTC",
+      "trigger_type": "scheduled"
+    }
+  },
+  "change_summary": "Ported from convex/crons.ts"
+}

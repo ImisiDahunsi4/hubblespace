@@ -4,30 +4,92 @@
   "title": "GameRound",
   "description": "Each round's prompt and reveal. Migrated from convex/tables/games.ts `gameRounds`. `prompt` is the GamePrompt object; `asks` is HotQuestion[] JSON holding the right answer server-side.",
   "properties": {
-    "gameId": { "type": "string" },
-    "n": { "type": "number" },
+    "gameId": {
+      "type": "string"
+    },
+    "n": {
+      "type": "number"
+    },
     "prompt": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "text": { "type": "string" },
-        "award": { "type": "string" },
-        "glyph": { "type": "string" },
-        "fact": { "type": "string" },
-        "from": { "type": "string" }
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "award": {
+          "type": "string"
+        },
+        "glyph": {
+          "type": "string"
+        },
+        "fact": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        }
       },
-      "required": ["id", "text", "award", "glyph", "fact", "from"]
+      "required": [
+        "id",
+        "text",
+        "award",
+        "glyph",
+        "fact",
+        "from"
+      ]
     },
-    "asks": { "type": "string", "description": "HotQuestion[] JSON" },
-    "endsAt": { "type": "number" },
-    "revealedAt": { "type": "number" },
-    "winners": { "type": "array", "items": { "type": "string" } },
+    "asks": {
+      "type": "string",
+      "description": "HotQuestion[] JSON"
+    },
+    "endsAt": {
+      "type": "number"
+    },
+    "revealedAt": {
+      "type": "number"
+    },
+    "winners": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "reactions": {
       "type": "array",
-      "items": { "type": "object", "properties": { "by": { "type": "string" }, "kind": { "type": "string" }, "at": { "type": "number" } }, "required": ["by", "kind", "at"] }
+      "items": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "at": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "by",
+          "kind",
+          "at"
+        ]
+      }
     },
-    "ready": { "type": "array", "items": { "type": "string" } }
+    "ready": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   },
-  "required": ["gameId", "n", "prompt", "winners"],
-  "x-convex-indexes": ["by_game(gameId, n)"]
+  "required": [
+    "gameId",
+    "n",
+    "prompt",
+    "winners"
+  ]
 }

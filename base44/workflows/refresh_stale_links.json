@@ -1,0 +1,31 @@
+{
+  "name": "refresh_stale_links",
+  "description": "Friday 17:00 UTC \u2014 enqueue stale linkCards for refresh (was convex/crons.ts 'refresh stale links').",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "refresh_stale_links",
+      "namespace": "base44",
+      "version": "1.0.0"
+    },
+    "do": [
+      {
+        "invoke": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "linkRefreshSweep"
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "config": {
+      "cron_expression": "0 17 * * 5",
+      "timezone": "UTC",
+      "trigger_type": "scheduled"
+    }
+  },
+  "change_summary": "Ported from convex/crons.ts"
+}

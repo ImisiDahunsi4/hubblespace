@@ -1,0 +1,31 @@
+{
+  "name": "catch_me_up",
+  "description": "15:00 UTC \u2014 a 'what moved' recap per room (was convex/crons.ts 'catch me up').",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "catch_me_up",
+      "namespace": "base44",
+      "version": "1.0.0"
+    },
+    "do": [
+      {
+        "invoke": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "dailyRecap"
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "config": {
+      "cron_expression": "0 15 * * *",
+      "timezone": "UTC",
+      "trigger_type": "scheduled"
+    }
+  },
+  "change_summary": "Ported from convex/crons.ts"
+}

@@ -4,13 +4,30 @@
   "title": "PuzzlePiece",
   "description": "Where each jigsaw piece is; who holds one is a Lease. Migrated from convex/tables/games.ts `puzzlePieces` (convex/puzzles.ts).",
   "properties": {
-    "gameId": { "type": "string" },
-    "i": { "type": "number" },
-    "x": { "type": "number" },
-    "y": { "type": "number" },
-    "placed": { "type": "boolean" },
-    "by": { "type": "string" }
+    "gameId": {
+      "type": "string"
+    },
+    "i": {
+      "type": "number"
+    },
+    "x": {
+      "type": "number"
+    },
+    "y": {
+      "type": "number"
+    },
+    "placed": {
+      "type": "boolean"
+    },
+    "by": {
+      "type": "string"
+    }
   },
-  "required": ["gameId", "i", "x", "y", "placed"],
-  "x-convex-indexes": ["by_game(gameId, i)"]
+  "required": [
+    "gameId",
+    "i",
+    "x",
+    "y",
+    "placed"
+  ]
 }

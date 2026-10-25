@@ -4,9 +4,15 @@
   "title": "WebhookEvent",
   "description": "Webhook dedup — AgentMail can redeliver, so an event is processed once. Migrated from convex/components/agentMail/schema.ts `events`.",
   "properties": {
-    "eventId": { "type": "string" },
-    "receivedAt": { "type": "number" }
+    "eventId": {
+      "type": "string"
+    },
+    "receivedAt": {
+      "type": "number"
+    }
   },
-  "required": ["eventId", "receivedAt"],
-  "x-convex-indexes": ["by_eventId"]
+  "required": [
+    "eventId",
+    "receivedAt"
+  ]
 }

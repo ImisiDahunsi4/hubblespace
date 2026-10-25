@@ -1,15 +1,4 @@
 {
   "name": "dailyRecap",
-  "entry": "entry.ts",
-  "automations": [
-    {
-      "type": "scheduled",
-      "name": "catch_me_up",
-      "description": "15:00 UTC — a 'what moved' recap per room (was convex/crons.ts 'catch me up').",
-      "is_active": true,
-      "schedule_mode": "recurring",
-      "schedule_type": "cron",
-      "cron_expression": "0 15 * * *"
-    }
-  ]
+  "entry": "entry.ts"
 }

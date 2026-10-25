@@ -4,20 +4,63 @@
   "title": "Widget",
   "description": "A card on the canvas. Migrated from convex/tables/rooms.ts `widgets`. `data` was a 35-arm discriminated union (convex/widgetData.ts) — validate per type in shared code (src/lib or a vendored module in functions), not in this schema.",
   "properties": {
-    "spaceId": { "type": "string", "description": "Space.id" },
-    "type": { "type": "string", "description": "Open string; ~32 shipped names in src/data/types.ts" },
-    "x": { "type": "number" },
-    "y": { "type": "number" },
-    "w": { "type": "number" },
-    "h": { "type": "number" },
-    "z": { "type": "number" },
-    "rotate": { "type": "number" },
-    "data": { "type": "object", "description": "Per-type payload — see convex/widgetData.ts for the full union" },
-    "createdBy": { "type": "string" },
-    "createdAt": { "type": "number" },
-    "embedding": { "type": "array", "items": { "type": "number" }, "description": "1536-dim vector for similar.ts dedup — no vector index on Base44; see docs/migration/03-data-migration.md" },
-    "embeddedText": { "type": "string" }
+    "spaceId": {
+      "type": "string",
+      "description": "Space.id"
+    },
+    "type": {
+      "type": "string",
+      "description": "Open string; ~32 shipped names in src/data/types.ts"
+    },
+    "x": {
+      "type": "number"
+    },
+    "y": {
+      "type": "number"
+    },
+    "w": {
+      "type": "number"
+    },
+    "h": {
+      "type": "number"
+    },
+    "z": {
+      "type": "number"
+    },
+    "rotate": {
+      "type": "number"
+    },
+    "data": {
+      "type": "object",
+      "description": "Per-type payload — see convex/widgetData.ts for the full union"
+    },
+    "createdBy": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "number"
+    },
+    "embedding": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "1536-dim vector for similar.ts dedup — no vector index on Base44; see docs/migration/03-data-migration.md"
+    },
+    "embeddedText": {
+      "type": "string"
+    }
   },
-  "required": ["spaceId", "type", "x", "y", "w", "h", "z", "data", "createdBy", "createdAt"],
-  "x-convex-indexes": ["by_space", "by_space_and_type", "vector:by_embedding"]
+  "required": [
+    "spaceId",
+    "type",
+    "x",
+    "y",
+    "w",
+    "h",
+    "z",
+    "data",
+    "createdBy",
+    "createdAt"
+  ]
 }

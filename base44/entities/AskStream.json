@@ -4,11 +4,24 @@
   "title": "AskStream",
   "description": "One row per streamed 'ask the space' question. Migrated from convex/tables/mail.ts `askStreams`. The stream endpoint is handed only a streamId; this row says what was asked and which recap turn to fill in.",
   "properties": {
-    "spaceId": { "type": "string" },
-    "streamId": { "type": "string" },
-    "question": { "type": "string" },
-    "messageId": { "type": "string", "description": "Message.id of the recap turn to fill when done" }
+    "spaceId": {
+      "type": "string"
+    },
+    "streamId": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string"
+    },
+    "messageId": {
+      "type": "string",
+      "description": "Message.id of the recap turn to fill when done"
+    }
   },
-  "required": ["spaceId", "streamId", "question", "messageId"],
-  "x-convex-indexes": ["by_stream", "by_space"]
+  "required": [
+    "spaceId",
+    "streamId",
+    "question",
+    "messageId"
+  ]
 }

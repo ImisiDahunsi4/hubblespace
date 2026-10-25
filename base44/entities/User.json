@@ -4,8 +4,15 @@
   "title": "User",
   "description": "Extends the built-in Base44 User with HubbleSpace profile fields (from convex/tables/rooms.ts `users`, which itself extended Convex authTables). Display name/color/emoji that others see in a room live on Member rows; these are the account-level defaults.",
   "properties": {
-    "color": { "type": "string" },
-    "emoji": { "type": "string" },
-    "mergedInto": { "type": "string", "description": "A guest seat folded into an account when the person joined (convex/auth.ts)" }
+    "color": {
+      "type": "string"
+    },
+    "emoji": {
+      "type": "string"
+    },
+    "mergedInto": {
+      "type": "string",
+      "description": "A guest seat folded into an account when the person joined (convex/auth.ts)"
+    }
   }
 }
