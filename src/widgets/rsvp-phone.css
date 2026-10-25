@@ -1,0 +1,43 @@
+/* Who's-in on a phone (FM2d): the first-minute pair stacks poll over who's-in, and the
+   view above the dock is shorter than the two footprints, so a waiting who's-in ran its
+   "waiting on the poll" ticket under the dock. While it waits, the card says each thing
+   once and is only as tall as what it says; the ticket rides its foot. */
+@media (max-width: 800px) {
+  /* "waiting on maya + jules + …" already says no one has answered */
+  .widget-group-body:has(> .card-waiting) > .widget-rsvp .rsvp-empty:has(~ .rsvp-waiting) {
+    display: none;
+  }
+
+  /* the group sizes to the card, not to its 260 footprint; a size container has no
+     content height, so the card measures its width only (its height queries are for
+     short desk cards) */
+  .widget-group:has(> .widget-group-body > .widget-rsvp ~ .card-waiting) {
+    height: auto !important;
+  }
+
+  .widget-group-body:has(> .card-waiting) > .widget-rsvp {
+    container-type: inline-size;
+  }
+}
+
+/* The waiting line runs as one sentence on a phone. The card is 200px wide and the crew board
+   sets this line at 14px, so seven names take four lines; as a flex row the dots and faces
+   hung mid-list, as if "Jules + Sam" were the faces. Inline, they lead the sentence and the
+   names wrap under them across the card. */
+@media (max-width: 800px) {
+  .widget-rsvp .rsvp-waiting {
+    display: block;
+  }
+
+  .widget-rsvp .rsvp-waiting > .rsvp-mark,
+  .widget-rsvp .rsvp-waiting > .member-face {
+    display: inline-block;
+    vertical-align: middle;
+    translate: 0 -1px;
+  }
+
+  .widget-rsvp .rsvp-waiting > .rsvp-mark,
+  .widget-rsvp .rsvp-waiting > .member-face:last-of-type {
+    margin-right: 5px;
+  }
+}

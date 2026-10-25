@@ -1,0 +1,186 @@
+/* eslint-disable */
+/**
+ * Generated `api` utility.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
+
+import type * as activity from "../activity.js";
+import type * as admin from "../admin.js";
+import type * as agent from "../agent.js";
+import type * as agentmail from "../agentmail.js";
+import type * as ai from "../ai.js";
+import type * as auth from "../auth.js";
+import type * as batch from "../batch.js";
+import type * as checkIns from "../checkIns.js";
+import type * as choiceVotes from "../choiceVotes.js";
+import type * as crons from "../crons.js";
+import type * as digest from "../digest.js";
+import type * as edits from "../edits.js";
+import type * as emails_signIn from "../emails/signIn.js";
+import type * as firecrawl from "../firecrawl.js";
+import type * as games from "../games.js";
+import type * as guard from "../guard.js";
+import type * as harness from "../harness.js";
+import type * as http from "../http.js";
+import type * as inbox from "../inbox.js";
+import type * as inboxRouting from "../inboxRouting.js";
+import type * as leases from "../leases.js";
+import type * as links from "../links.js";
+import type * as mailArrival from "../mailArrival.js";
+import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
+import type * as nebius from "../nebius.js";
+import type * as otp from "../otp.js";
+import type * as paint from "../paint.js";
+import type * as photos from "../photos.js";
+import type * as pilot from "../pilot.js";
+import type * as playLab from "../playLab.js";
+import type * as presence from "../presence.js";
+import type * as puzzles from "../puzzles.js";
+import type * as questions from "../questions.js";
+import type * as rag from "../rag.js";
+import type * as rateLimits from "../rateLimits.js";
+import type * as recap from "../recap.js";
+import type * as rightOfWay from "../rightOfWay.js";
+import type * as roomBrief from "../roomBrief.js";
+import type * as roomPresence from "../roomPresence.js";
+import type * as seat from "../seat.js";
+import type * as seed from "../seed.js";
+import type * as shootReset from "../shootReset.js";
+import type * as similar from "../similar.js";
+import type * as spaces from "../spaces.js";
+import type * as staticHosting from "../staticHosting.js";
+import type * as stats from "../stats.js";
+import type * as streaming from "../streaming.js";
+import type * as tables_games from "../tables/games.js";
+import type * as tables_mail from "../tables/mail.js";
+import type * as tables_rightOfWay from "../tables/rightOfWay.js";
+import type * as tables_rooms from "../tables/rooms.js";
+import type * as tables_voice from "../tables/voice.js";
+import type * as tavily from "../tavily.js";
+import type * as voiceBuild from "../voiceBuild.js";
+import type * as votes from "../votes.js";
+import type * as waitlist from "../waitlist.js";
+import type * as widgetData from "../widgetData.js";
+import type * as widgets from "../widgets.js";
+import type * as work from "../work.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
+declare const fullApi: ApiFromModules<{
+  activity: typeof activity;
+  admin: typeof admin;
+  agent: typeof agent;
+  agentmail: typeof agentmail;
+  ai: typeof ai;
+  auth: typeof auth;
+  batch: typeof batch;
+  checkIns: typeof checkIns;
+  choiceVotes: typeof choiceVotes;
+  crons: typeof crons;
+  digest: typeof digest;
+  edits: typeof edits;
+  "emails/signIn": typeof emails_signIn;
+  firecrawl: typeof firecrawl;
+  games: typeof games;
+  guard: typeof guard;
+  harness: typeof harness;
+  http: typeof http;
+  inbox: typeof inbox;
+  inboxRouting: typeof inboxRouting;
+  leases: typeof leases;
+  links: typeof links;
+  mailArrival: typeof mailArrival;
+  messages: typeof messages;
+  migrations: typeof migrations;
+  nebius: typeof nebius;
+  otp: typeof otp;
+  paint: typeof paint;
+  photos: typeof photos;
+  pilot: typeof pilot;
+  playLab: typeof playLab;
+  presence: typeof presence;
+  puzzles: typeof puzzles;
+  questions: typeof questions;
+  rag: typeof rag;
+  rateLimits: typeof rateLimits;
+  recap: typeof recap;
+  rightOfWay: typeof rightOfWay;
+  roomBrief: typeof roomBrief;
+  roomPresence: typeof roomPresence;
+  seat: typeof seat;
+  seed: typeof seed;
+  shootReset: typeof shootReset;
+  similar: typeof similar;
+  spaces: typeof spaces;
+  staticHosting: typeof staticHosting;
+  stats: typeof stats;
+  streaming: typeof streaming;
+  "tables/games": typeof tables_games;
+  "tables/mail": typeof tables_mail;
+  "tables/rightOfWay": typeof tables_rightOfWay;
+  "tables/rooms": typeof tables_rooms;
+  "tables/voice": typeof tables_voice;
+  tavily: typeof tavily;
+  voiceBuild: typeof voiceBuild;
+  votes: typeof votes;
+  waitlist: typeof waitlist;
+  widgetData: typeof widgetData;
+  widgets: typeof widgets;
+  work: typeof work;
+}>;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
+
+export declare const components: {
+  staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
+  agentMail: import("../components/agentMail/_generated/component.js").ComponentApi<"agentMail">;
+  firecrawl: import("@firecrawl/firecrawl-convex/_generated/component.js").ComponentApi<"firecrawl">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  pollTallies: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"pollTallies">;
+  memberCounts: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"memberCounts">;
+  shardedCounter: import("@convex-dev/sharded-counter/_generated/component.js").ComponentApi<"shardedCounter">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
+  actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
+  workpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"workpool">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
+  batchWorker: import("@convex-dev/batch-worker/_generated/component.js").ComponentApi<"batchWorker">;
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
+  persistentTextStreaming: import("@convex-dev/persistent-text-streaming/_generated/component.js").ComponentApi<"persistentTextStreaming">;
+  presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
+  authWellKnown: import("../components/authWellKnown/_generated/component.js").ComponentApi<"authWellKnown">;
+};

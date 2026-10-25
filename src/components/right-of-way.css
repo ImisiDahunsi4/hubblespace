@@ -1,0 +1,487 @@
+/* RIGHT OF WAY — the halo and the ghost (components/RightOfWay.tsx).
+   Two marks, one rule: solid is a person's hand, dashed is the space waiting.
+   A held card wears a thick flat frame in its holder's colour with their
+   name on a tab. A change waiting on them is a paper row with a dashed ink
+   edge and an ink ticket hanging off the card's bottom edge. Lime is kept
+   for the landing: on let-go the frame draws in, the ticket turns lime and
+   goes up into the card, and the row snaps solid in a lime flash, then
+   settles to look like its neighbours: a handover. The puzzle's ghost (index.css .jigsaw-ghost) uses the same
+   dashed ink + lime. */
+
+.row-halo {
+  --grace: 600ms;
+  position: absolute;
+  inset: -9px;
+  border: 4px solid var(--holder);
+  border-radius: 16px;
+  /* flat: an ink keyline and a hard offset, no blur */
+  box-shadow:
+    0 0 0 2px var(--color-ink),
+    5px 5px 0 2px var(--color-ink);
+  pointer-events: none;
+  z-index: 5;
+  animation: row-halo-in var(--dur-arrive) var(--ease-pop) backwards;
+}
+/* let go: the frame draws in to the card over the grace, so the wait reads as a handover */
+.row-halo.is-letting-go {
+  animation: row-halo-release var(--grace) var(--ease-glide) forwards;
+}
+.row-halo.is-leaving {
+  opacity: 0;
+  transition: opacity var(--dur-quick) var(--ease-glide);
+}
+.row-halo.is-letting-go.is-leaving {
+  animation: none;
+}
+.row-halo-tag {
+  position: absolute;
+  left: 10px;
+  bottom: calc(100% + 2px);
+  padding: 4px 11px 3px;
+  border: 2px solid var(--color-ink);
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: var(--holder);
+  color: var(--color-ink);
+  font: 500 13px/1.2 var(--font-sans);
+  white-space: nowrap;
+}
+.row-halo-tag b {
+  font-weight: 800;
+}
+
+/* the waiting change, on the card: paper, dashed ink edge (lime is the landing's) */
+[data-ghost-changed] {
+  outline: 2px dashed var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 10px;
+  background: var(--color-card) !important;
+  color: var(--color-ink);
+}
+[data-ghost-changed="remove"] {
+  background: transparent !important;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  opacity: 0.55;
+}
+/* landed: the dashes close and the lime lets go */
+[data-ghost-landed] {
+  animation: row-landed var(--dur-hero) var(--ease-glide) backwards;
+}
+
+/* the ticket: hangs off the card's bottom edge */
+.row-ghost {
+  --grace: 600ms;
+  position: absolute;
+  left: 14px;
+  top: calc(100% - 3px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 6px 12px;
+  border: 2px dashed var(--color-lime);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: var(--color-ink);
+  color: var(--color-card);
+  font: 500 13px/1.2 var(--font-sans);
+  white-space: nowrap;
+  z-index: 6;
+  transform-origin: 50% 0;
+  animation: row-ticket-in var(--dur-arrive) var(--ease-pop) backwards;
+}
+.row-ghost-what {
+  opacity: 0.7;
+}
+.row-ghost-what b {
+  font-weight: 600;
+}
+/* the dominant words: who it is waiting on */
+.row-ghost-on {
+  display: inline-flex;
+  order: -1;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-lime);
+  font-weight: 700;
+}
+.row-ghost-on b {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--holder);
+  color: var(--color-ink);
+  font-weight: 800;
+  opacity: 1;
+}
+.row-ghost-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.row-ghost-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-lime);
+  animation: row-dot 900ms steps(1, end) infinite;
+  animation-delay: calc(var(--i) * 300ms);
+}
+.row-ghost-cancel {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  font: 700 12px/1.2 var(--font-sans);
+  cursor: pointer;
+}
+/* the holder let go: the ticket is next */
+.row-ghost.is-landing {
+  border-style: solid;
+  background: var(--color-lime);
+  color: var(--color-ink);
+  transition:
+    background var(--dur-quick) var(--ease-glide),
+    color var(--dur-quick) var(--ease-glide);
+}
+.row-ghost.is-landing .row-ghost-on {
+  color: var(--color-ink);
+}
+.row-ghost.is-landing .row-ghost-on b {
+  background: var(--color-ink);
+  color: var(--color-lime);
+}
+.row-ghost.is-landing .row-ghost-dots i {
+  background: var(--color-ink);
+}
+/* cancelled or given up: it drops away */
+.row-ghost.is-leaving {
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity var(--dur-base) var(--ease-glide),
+    translate var(--dur-base) var(--ease-glide);
+}
+/* landed: it goes up into the card */
+.row-ghost.is-landing.is-leaving {
+  translate: 0 -100%;
+  scale: 1 0.4;
+}
+
+@keyframes row-halo-in {
+  from {
+    opacity: 0;
+    scale: 1.05;
+  }
+}
+@keyframes row-halo-release {
+  to {
+    inset: 0;
+    opacity: 0;
+    box-shadow:
+      0 0 0 0 var(--color-ink),
+      0 0 0 0 var(--color-ink);
+  }
+}
+@keyframes row-ticket-in {
+  from {
+    opacity: 0;
+    translate: 0 -60%;
+    scale: 1 0.6;
+  }
+}
+@keyframes row-dot {
+  0%,
+  66% {
+    opacity: 0.3;
+  }
+  33% {
+    opacity: 1;
+  }
+}
+@keyframes row-landed {
+  0% {
+    background: var(--color-lime);
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+    scale: 1.09 0.92;
+  }
+  22% {
+    scale: 1;
+  }
+  65% {
+    background: var(--color-lime);
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
+/* What this space knows: "what it held back". Paper like the rest of the
+   wall: one slip per time it waited or wouldn't, the ask on top, a stamp for
+   what it did (lime: it waited and landed · dashed: still waiting or dropped
+   · orange: it didn't). The sheet runs the full width under the others. */
+.knows-sheet.is-d {
+  grid-column: 1 / -1;
+}
+.knows-sec.row-held-back ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 18px;
+}
+.row-held-back li {
+  display: grid;
+  width: min(100%, 320px);
+  gap: 9px;
+  padding: 13px 15px 14px;
+  border: 2px solid var(--color-ink);
+  border-radius: 14px;
+  background: var(--color-card);
+  box-shadow: 4px 4px 0 var(--color-ink);
+  color: var(--color-ink);
+  font: 500 13px/1.35 var(--font-sans);
+  rotate: calc((mod(var(--i, 0), 3) - 1) * 0.7deg);
+  animation: row-held-in var(--dur-arrive) var(--ease-pop) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+.row-held-asked {
+  font: 800 17px/1.15 var(--font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.row-held-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  color: var(--color-muted);
+}
+.row-held-line b {
+  padding: 3px 9px 4px;
+  border: 2px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-lime);
+  color: var(--color-ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.row-held-back li[data-tone="dropped"] .row-held-line b,
+.row-held-back li[data-tone="waiting"] .row-held-line b {
+  border-style: dashed;
+  background: transparent;
+}
+.row-held-back li[data-tone="never"] .row-held-line b {
+  background: var(--color-trip);
+}
+.row-held-back li[data-tone="aside"] .row-held-line b {
+  background: var(--color-card);
+}
+@keyframes row-held-in {
+  from {
+    opacity: 0;
+    scale: 0.94;
+    translate: 0 8px;
+  }
+}
+.row-held-empty {
+  opacity: 0.6;
+  font: 400 14px/1.35 var(--font-sans);
+}
+/* the week in one line, every number from the write log; if the check ever fails it says so in orange */
+.row-held-sum {
+  margin-top: 8px;
+  font: 600 14px/1.35 var(--font-sans);
+  color: var(--color-ink);
+  opacity: 0.8;
+}
+.row-held-sum[data-bad] {
+  opacity: 1;
+  color: var(--color-trip);
+}
+/* a slip goes back to its card */
+.row-held-back li[data-card] {
+  cursor: pointer;
+  transition: translate var(--dur-quick) var(--ease-glide), box-shadow var(--dur-quick) var(--ease-glide);
+}
+.row-held-back li[data-card]:hover {
+  translate: -2px -2px;
+  box-shadow: 6px 6px 0 var(--color-ink);
+}
+
+/* a drag pauses every animation in its card (index.css); the halo and ghost still arrive */
+.widget-group.is-dragging .row-ghost,
+.widget-group.is-dragging .row-ghost *,
+.widget-group.is-dragging .row-halo,
+.widget-group.is-dragging [data-ghost-changed],
+.widget-group.is-dragging [data-ghost-landed] {
+  animation-play-state: running !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-halo,
+  .row-halo.is-letting-go,
+  .row-ghost,
+  .row-ghost-dots i,
+  [data-ghost-landed],
+  .row-held-back li {
+    animation: none;
+  }
+  .row-halo.is-letting-go {
+    opacity: 0.4;
+  }
+}
+
+/* CHOICES BECOME A VOTE (components/ChoiceVote.tsx). The vote rides on the
+   card it's about, an ink ticket off the bottom edge like the waiting one,
+   but solid: it waits on people's answers, not a hand. The question leads in
+   cream, who asked and what's at stake under it; the people it's up to get
+   keep it / change it, everyone sees who has answered. A closed vote leaves
+   a cream note on the card with an ink edge: what changed, what it cleared. */
+.row-vote {
+  position: absolute;
+  left: 14px;
+  top: calc(100% - 3px);
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  max-width: 340px;
+  padding: 9px 12px 10px;
+  border: 2px solid var(--color-ink);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: var(--color-ink);
+  color: var(--color-card);
+  font: 500 13px/1.25 var(--font-sans);
+  box-shadow: 4px 4px 0 var(--color-ink);
+  z-index: 7;
+  transform-origin: 50% 0;
+  animation: row-ticket-in var(--dur-arrive) var(--ease-pop) backwards;
+}
+.row-vote-ask {
+  font: 800 16px/1.15 var(--font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.row-vote-stake {
+  opacity: 0.7;
+}
+.row-vote-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.row-vote-you {
+  color: var(--color-lime);
+  font-weight: 700;
+}
+.row-vote-option {
+  padding: 5px 13px 6px;
+  border: 2px solid var(--color-card);
+  border-radius: 999px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  font: 700 13px/1.1 var(--font-sans);
+  cursor: pointer;
+  transition:
+    background var(--dur-quick) var(--ease-glide),
+    scale var(--dur-instant) var(--ease-glide);
+}
+.row-vote-option:active {
+  scale: 0.95;
+}
+.row-vote-option[data-keep] {
+  background: transparent;
+  color: var(--color-card);
+}
+.row-vote-option[data-picked] {
+  border-color: var(--color-lime);
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+.row-vote-tally {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12px;
+}
+.row-vote-tally i {
+  padding: 1px 7px 2px;
+  border: 1.5px dashed color-mix(in oklab, var(--color-card) 55%, transparent);
+  border-radius: 999px;
+  font-style: normal;
+  opacity: 0.75;
+}
+.row-vote-tally i[data-answered] {
+  border: 1.5px solid var(--color-lime);
+  color: var(--color-lime);
+  opacity: 1;
+}
+.row-vote-tally em {
+  font-style: normal;
+  opacity: 0.6;
+}
+.row-vote-withdraw {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-card);
+  font: 600 12px/1.2 var(--font-sans);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.row-vote.is-leaving,
+.row-vote-note.is-leaving {
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity var(--dur-base) var(--ease-glide),
+    translate var(--dur-base) var(--ease-glide);
+}
+/* closed: a cream slip on the card's bottom edge (the slip family) */
+.row-vote-note {
+  position: absolute;
+  left: 14px;
+  top: calc(100% + 6px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  max-width: 340px;
+  padding: 7px 12px 8px;
+  border: 2px solid var(--color-ink);
+  border-radius: 12px;
+  background: var(--color-card);
+  box-shadow: 4px 4px 0 var(--color-ink);
+  color: var(--color-ink);
+  font: 500 13px/1.25 var(--font-sans);
+  z-index: 6;
+  animation: row-held-in var(--dur-arrive) var(--ease-pop) backwards;
+}
+.row-vote-note b {
+  padding: 2px 8px 3px;
+  border: 2px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-lime);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.row-vote-note:not([data-state="change"]) b {
+  background: transparent;
+  border-style: dashed;
+}
+.widget-group.is-dragging .row-vote,
+.widget-group.is-dragging .row-vote-note {
+  animation-play-state: running !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .row-vote,
+  .row-vote-note {
+    animation: none;
+  }
+}

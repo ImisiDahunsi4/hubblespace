@@ -1,0 +1,3594 @@
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useAction, useConvex, useConvexConnectionState, useMutation } from "convex/react";
+import { useQuery, usePaginatedQuery } from "convex-helpers/react/cache";
+import { useStream } from "@convex-dev/persistent-text-streaming/react";
+import type { StreamId } from "@convex-dev/persistent-text-streaming";
+import { api } from "../../convex/_generated/api";
+import { Suspense, lazy } from "react";
+const PlayLab = lazy(() =>
+  import("../components/PlayLab").then((module) => ({ default: module.PlayLab })),
+);
+/** The take room is a copy of the crew; theme, faces and canvas size are keyed
+    by fixture id, so it borrows the crew's fixture (docs/local/play-lab.md). */
+const PLAY_LAB_SOURCE = "crew";
+import type { Id } from "../../convex/_generated/dataModel";
+import { ActionDock, radioRoomOf } from "../components/ActionDock";
+import { EditSlips, VoiceBuildLayer } from "../components/VoiceBuildLayer";
+import { LiveHeldBack, RowGhosts, RowHalos, settledLine, withGhosts, type RowGhost, type RowLease } from "../components/RightOfWay";
+import { RowVotes, labelsOf, questionOf, type RowVote } from "../components/ChoiceVote";
+import { voterOf } from "../lib/choiceVote";
+import { useHolds } from "../live/useHolds";
+import type { WaitOutcome } from "../live/useVoiceBuild";
+import { offersFor } from "../lib/deck/suggest";
+import { setVoiceStageBoard, setVoiceStageFacts, setVoiceStageOffers } from "../lib/voiceStage";
+import type { ThreadLink } from "../components/LinkThreads";
+import { RoomKnowsDoor, RoomKnowsPage } from "../components/RoomKnows";
+import { standing } from "../lib/roomKnows";
+import { useVoiceBuild } from "../live/useVoiceBuild";
+import { boardItems, titleOfWidget } from "../lib/deck";
+import { applyEdit } from "../lib/deck/edits";
+import { myPartFor } from "../lib/challenge";
+import { Canvas, SpaceHeader } from "../components/Canvas";
+import { ClaimCard, type RoomContext } from "../components/ClaimCard";
+import { SettingsSheet } from "../components/SettingsSheet";
+import { JoinForm } from "../components/JoinForm";
+import { useAccount } from "../live/useJoin";
+import { isPersonaName, PERSONAS, resetIdentity, updateIdentity } from "../live/identity";
+import { NewRoomInvite, NewRoomStart } from "../components/NewRoom";
+import { OrbHint, orbHintWanted } from "../components/OrbHint";
+import { MAKE_SPACE_EVENT } from "../components/DemoBanner";
+import { setNextVoiceScript } from "../lib/voice";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useAvatarUpload } from "../live/useAvatarUpload";
+import { GateCursor, type GatePoint } from "../components/GateCursor";
+import { OwnCursor, ownCursorWanted } from "../components/OwnCursor";
+import { MemberFace } from "../components/MemberFace";
+import { PhotoWallGallery } from "../components/PhotoWallGallery";
+import { ReadingRoom, type RoomReply } from "../components/ReadingRoom";
+import { CrawlStrip } from "../components/CrawlStrip";
+import { ShipRoom } from "../components/ShipRoom";
+import type { RoomOrigin } from "../components/CanvasRoom";
+import { GhostCanvas } from "../components/GhostCanvas";
+import { GlobalChatPanel } from "../components/GlobalChatPanel";
+import { Rail } from "../components/Rail";
+import { SpaceEditorPanel } from "../components/SpaceEditorPanel";
+import { SpaceLiveStrip } from "../components/SpaceLiveStrip";
+import { MailArrival } from "../components/MailArrival";
+import { WidgetEditorPanel } from "../components/WidgetEditorPanel";
+import { WidgetPicker } from "../components/WidgetPicker";
+import { placingSize, type PlacingItem } from "../components/PlacementGhost";
+import { playPresetFor } from "../lib/playPresets";
+import type { CanvasPoint } from "../components/FirstRunSticky";
+import { canvasSlotFor } from "../lib/canvasPlacement";
+import { SpaceMaker } from "../components/SpaceMaker";
+import {
+  WidgetThreadDock,
+  type ThreadDockPlacement,
+  type ThreadDockSize,
+} from "../components/WidgetThreadDock";
+import { getSpace, SPACES, SPACES_BY_ID } from "../data/spaces";
+import { getStickerDefinition } from "../data/stickers";
+import type { Widget, WidgetType } from "../data/types";
+import { LinkQuestionStrip } from "../components/LinkQuestionStrip";
+import { linkCardQuestions, questionThreadId } from "../lib/linkQuestions";
+import { getSoundEnabled, playSound, setSoundEnabled } from "../lib/sounds";
+import {
+  defaultSpaceCustomization,
+  spaceCustomizationStyle,
+  type SpaceCustomization,
+} from "../data/spaceThemes";
+import {
+  cleanRecapText,
+  RECAP_STREAM_CHARS,
+  RECAP_STREAM_MS,
+  RECAP_THREAD_ID,
+  type RecapLine,
+  type RecapTurn,
+} from "../data/recap";
+import { flyWidgetIn } from "../lib/flipLanding";
+import { pileInsideFrame, widgetIsInsideFrame } from "../lib/frameMembership";
+import { relTime, spaceFromLive, toChatMessage } from "../live/adapt";
+import type { RoundtableReply } from "../widgets/buildroom";
+import {
+  buildRoomFeedFrom,
+  linkReplyCounts,
+  pileLinks,
+  readPileData,
+  toggledVoters,
+  type PileData,
+} from "../lib/buildRoomFeed";
+import type { BuildRoomLink } from "../data/buildroom";
+import { cannedLinkQuestions } from "../lib/linkQuestions";
+import { guessLinkKind } from "../lib/mockArrival";
+import type { PhotoComment } from "../components/PhotoWallGallery";
+import { getPresenceId, useIdentity } from "../live/identity";
+import { patchWidgetData, useLiveHandlers } from "../live/useLiveHandlers";
+import { mergePollRows, type PollRow } from "../live/useLivePoll";
+import { useLiveSpace } from "../live/useLiveSpace";
+import { usePresence } from "../live/usePresence";
+import { useSpaceWork } from "../live/useSpaceWork";
+import useRoomPresence from "@convex-dev/presence/react";
+import { useShowAfter } from "../lib/entrance";
+import { freshWidgetData, getWidgetBlueprint } from "../lib/widgetDefaults";
+import { widgetLabel } from "../lib/widgetLabels";
+import { panToWidget, recapTargetsOf, startBoardScan } from "../lib/recapBoard";
+import { YourTurn, goToTurnWidget } from "../components/YourTurn";
+import { GameInvite, GameSheet, GameSheetTab, GamesDev } from "../components/games/GameInvite";
+import { GAME_WIDGET_ID, GamesProvider, KEEPSAKE_WIDGET_ID, SCOREBOARD_WIDGET_ID } from "../lib/games/useMockGames";
+import { useLiveGames } from "../live/useLiveGames";
+import { useLiveJigsaw } from "../live/useLiveJigsaw";
+import { ROOM_JIGSAW } from "../data/jigsaw";
+import { gameAsk } from "../lib/deck/verbs";
+import { JigsawDev, JigsawInvite, JigsawWorld } from "../components/games/Jigsaw";
+import { JigsawProvider } from "../lib/jigsaw/useMockJigsaw";
+import { gameSpots, GAME_CARD } from "../lib/games/place";
+import { LIVE_GAME_ROOMS } from "../data/games";
+import { yourTurn, type TurnItem, type TurnViewer } from "../lib/yourTurn";
+import { widgetSupportsThread } from "../lib/widgetThreads";
+import { RSVP_CHOICES, type RsvpStatus } from "../widgets/extras";
+import type { CozyColorStroke } from "../widgets/CozyColorWidget";
+import type { CanvasGestureKind, CanvasLayout, LivePeer } from "../live/presenceTypes";
+import { createLabPeerFeed, labPeersRequested } from "../live/labPeers";
+import { DEFAULT_SPACE_SLUG, knowsHash, normalSpaceHash } from "../lib/routes";
+import { useCanvasSpacePan } from "../lib/canvasSpacePan";
+import {
+  BUILD_ROOM_CANVAS,
+  buildRoomOverviewScale,
+  keeperNoteSlot,
+  withBuildRoomCover,
+} from "../lib/buildRoomPresentation";
+
+const EMPTY_RECAP_LINES: RecapLine[] = [];
+
+/* "ask the space" streams over HTTP (convex/streaming.ts). Convex serves HTTP
+   actions from the deployment's `.site` origin, and this app mounts its own
+   routes under `/api` (httpPrefix in convex/convex.config.ts) so the static
+   site can keep the root. The second argument keeps this from throwing if the
+   env var is missing — mock mode imports this module but never streams. */
+const ASK_STREAM_URL = new URL(
+  `${
+    String(import.meta.env.VITE_CONVEX_SITE_URL ?? "") ||
+    String(import.meta.env.VITE_CONVEX_URL ?? "").replace(".convex.cloud", ".convex.site")
+  }/api/ask-stream`,
+  window.location.origin,
+);
+
+/** How long the daily question's scribble-wipe reveal runs after you post. */
+const DAILY_REVEAL_MS = 1600;
+
+/* ── rsvp + daily question: shared, not per-browser ────────────────────────
+   Both widgets already keep their state in `widget.data`, so both ride the
+   route the pile uses (`patchPile` below): read off the live subscription,
+   write through `handlers.onUpdate` → `widgets.updateWidgetData`. There is no
+   local mirror — a second source of truth is what made these single-browser.
+
+   Storage keys by identity (`userId`), never by browser or display name, so
+   two people are two rows. Seeded rows carry no userId and simply read as
+   everybody else; a widget whose `data` predates the fields reads as empty.
+   Validators: `rsvpData` / `dailyQData` in convex/widgetData.ts. */
+type LiveRsvpResponse = { name: string; status: RsvpStatus; userId?: string };
+type LiveDailyAnswer = {
+  name: string;
+  text: string;
+  userId?: string;
+  /** Seeded tally: emoji → who reacted. Live reactors are folded in here. */
+  reactions?: Record<string, string[]>;
+  /** Live reactions: reactor's userId → the one emoji they're holding. */
+  reactedBy?: Record<string, string>;
+};
+
+function rsvpResponsesOf(widget: Widget): LiveRsvpResponse[] {
+  return Array.isArray(widget.data.responses)
+    ? (widget.data.responses as LiveRsvpResponse[])
+    : [];
+}
+
+function dailyAnswersOf(widget: Widget): LiveDailyAnswer[] {
+  return Array.isArray(widget.data.answers)
+    ? (widget.data.answers as LiveDailyAnswer[])
+    : [];
+}
+
+/**
+ * The write-side inverse of `restoreKeys` in `src/live/adapt.ts`, matching
+ * `convexSafe` in `convex/seed.ts`. Convex field names are ASCII-only, so a
+ * seeded reaction tally is stored as `__unicode_1f602` and unescaped on read
+ * — writing the unescaped `😂` back is rejected before the mutation even
+ * runs. Anything that round-trips a widget's `data` through the client has to
+ * put the escaping back. (Three copies of this now; it belongs beside
+ * `restoreKeys`, but adapt.ts isn't mine this round.)
+ */
+function convexSafeKeys<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(convexSafeKeys) as T;
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, child]) => [
+      /^[\x20-\x7E]+$/.test(key)
+        ? key
+        : `__unicode_${Array.from(key)
+            .map((char) => char.codePointAt(0)?.toString(16))
+            .join("_")}`,
+      convexSafeKeys(child),
+    ]),
+  ) as T;
+}
+
+type CanvasCamera = {
+  scale: number;
+  scrollLeft: number;
+  scrollTop: number;
+};
+
+type FocusedTarget = {
+  kind: "frame" | "widget";
+  id: string;
+  type: WidgetType;
+  label: string;
+};
+
+type FocusLayout = {
+  camera: CanvasCamera;
+  dockPlacement?: ThreadDockPlacement;
+};
+
+type PhotoGalleryState = {
+  widgetId: string;
+  origin: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  /** Screen rects of the pile's visible prints (photo index 0/1/2) so the
+     gallery can FLIP them from the pile to their spread positions. */
+  printOrigins?: Array<{ x: number; y: number; w: number; h: number } | null>;
+};
+
+/** The on-screen rect of a canvas card, as inset from each viewport edge —
+ *  the room grows out of it and shrinks back into it. */
+function roomOriginFor(widgetId: string): RoomOrigin {
+  const element = Array.from(
+    document.querySelectorAll<HTMLElement>(".widget-group[data-widget-id]"),
+  ).find((candidate) => candidate.dataset.widgetId === widgetId);
+  const rect = element?.getBoundingClientRect();
+  if (!rect) {
+    return {
+      top: window.innerHeight * 0.25,
+      right: window.innerWidth * 0.25,
+      bottom: window.innerHeight * 0.25,
+      left: window.innerWidth * 0.25,
+    };
+  }
+  return {
+    top: Math.max(0, rect.top),
+    right: Math.max(0, window.innerWidth - rect.right),
+    bottom: Math.max(0, window.innerHeight - rect.bottom),
+    left: Math.max(0, rect.left),
+  };
+}
+
+const CAMERA_MS = 360;
+const CAMERA_EXIT_MS = 280;
+const FRAME_FIT_GUTTER = 24;
+const MIN_FRAME_SCALE = 0.8;
+const MIN_EDIT_FRAME_SCALE = 0.5;
+const MAX_FRAME_SCALE = 1.35;
+const MIN_WIDGET_SCALE = 1;
+const MAX_WIDGET_SCALE = 1.8;
+const WIDGET_FOCUS_GUTTER = 48;
+const THREAD_DOCK_GAP = 16;
+const DEFAULT_THREAD_DOCK_SIZE: ThreadDockSize = {
+  width: 680,
+  height: 540,
+};
+const CLAIM_DISMISSED_KEY = "ourspaces:claim-dismissed";
+/** The door opening: the header enters and the room becomes yours at SETTLE,
+ *  the card + scrim are gone at LEAVE. Card collapse is 440ms, scrim lift 500ms,
+ *  the cursor hands over to the OS arrow from 400ms to 620ms. */
+const GATE_SETTLE_MS = 200;
+const GATE_LEAVE_MS = 660;
+
+type GhostLifecycle = "hidden" | "in" | "leaving";
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function easeOutQuint(progress: number) {
+  return 1 - Math.pow(1 - progress, 5);
+}
+
+function cssPixels(value: string) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function elementIsVisible(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  const style = window.getComputedStyle(element);
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    style.display !== "none" &&
+    style.visibility !== "hidden"
+  );
+}
+
+function useGhostLifecycle(showGhosts: boolean, status: string): GhostLifecycle {
+  const [lifecycle, setLifecycle] = useState<GhostLifecycle>("hidden");
+  const lifecycleRef = useRef<GhostLifecycle>("hidden");
+
+  useEffect(() => {
+    const setNext = (next: GhostLifecycle) => {
+      lifecycleRef.current = next;
+      setLifecycle(next);
+    };
+
+    if (showGhosts) {
+      setNext("in");
+      return;
+    }
+
+    if (status === "loading") {
+      if (lifecycleRef.current !== "hidden") setNext("hidden");
+      return;
+    }
+
+    if (lifecycleRef.current !== "in") {
+      if (lifecycleRef.current !== "hidden") setNext("hidden");
+      return;
+    }
+
+    setNext("leaving");
+    const timeout = window.setTimeout(() => setNext("hidden"), 280);
+    return () => window.clearTimeout(timeout);
+  }, [showGhosts, status]);
+
+  return lifecycle;
+}
+
+const ROOM_HEARTBEAT_MS = 30_000;
+
+/** presence component: "I have this space open" — a room-occupancy signal
+ * for the space-list badge (Rail.tsx), independent of the hand-rolled
+ * cursor/gesture presence system above. Its own component so mounting it
+ * only once a room is entered doesn't touch hook call order elsewhere. */
+function RoomPresenceHeartbeat({ roomId, userId }: { roomId: string; userId: string }) {
+  // 30s, not the hook's 10s default: this heartbeat writes through the
+  // component's own sessions/workers tables and pokes its batch worker, which
+  // was the largest single source of OCC retries on the deployment. The
+  // interval is also the component's liveness window, so "N here" clears up to
+  // 30s after someone leaves — an occupancy badge can afford that.
+  useRoomPresence(api.roomPresence, roomId, userId, ROOM_HEARTBEAT_MS);
+  return null;
+}
+
+/** What people call each room besides its name, for "take me to …". */
+const VOICE_ROOM_ALSO: Record<string, string[]> = { crew: ["crew", "group chat", "friends"], couple: ["long distance", "us two", "couple"], house: ["house", "roommates"], family: ["family"], league: ["league", "game day"] };
+
+export function LiveSpacePage({
+  slug = DEFAULT_SPACE_SLUG,
+  onSelectSpace,
+  isInviteEntry = false,
+  mailLab = false,
+  playLab = false,
+}: {
+  slug?: string;
+  onSelectSpace?: (id: string) => void;
+  isInviteEntry?: boolean;
+  /** #/mail — the mail arrival lab over this (the crew) space */
+  mailLab?: boolean;
+  /** #/play — the director pill that runs the demo's opening take (docs/local/play-lab.md) */
+  playLab?: boolean;
+}) {
+  const connectionState = useConvexConnectionState();
+  const { space, snapshot, widgets, status, mode } = useLiveSpace(slug);
+  const showLoading = useShowAfter(status === "loading");
+  const ghostLifecycle = useGhostLifecycle(showLoading, status);
+  const identity = useIdentity();
+  /* Room occupancy counts TABS, like the cursors do (see getPresenceId) —
+     two windows of one browser are two viewports, and the head count that
+     disagreed with the cursors on screen was the tell. */
+  const presenceId = getPresenceId();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const canvasStageRef = useRef<HTMLDivElement>(null);
+  const canvasScaleLayerRef = useRef<HTMLDivElement>(null);
+  const canvasScaleRef = useRef(1);
+  const canvasReturnView = useRef<CanvasCamera | null>(null);
+  const chatReturnView = useRef<boolean | null>(null);
+  const canvasCameraAnimation = useRef(0);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [gateLeaving, setGateLeaving] = useState(false);
+  const gateCursorPoint = useRef<GatePoint | null>(null);
+  const [ownCursorOn] = useState(ownCursorWanted);
+  // the orb hint on a first visit to a tour room (FM1b, components/OrbHint.tsx)
+  const [orbHint, setOrbHint] = useState(orbHintWanted);
+  const gateTimers = useRef<number[]>([]);
+  const [claimLeaving, setClaimLeaving] = useState(false);
+  const [claimPoint, setClaimPoint] = useState<GatePoint | null>(null);
+  const claimTimer = useRef<number | null>(null);
+  /* The door. `?enter=1` / `?door=0` walk straight past it (takes and drive
+     states), `?door=1` forces it, and a room whose door is off (#/admin,
+     admin.setDoor) lets a fresh browser in on its random persona. An invite
+     link always shows it. */
+  const [doorParam] = useState(() => new URLSearchParams(window.location.search).get("door"));
+  const [entered, setEntered] = useState(
+    () =>
+      !isInviteEntry &&
+      doorParam !== "1" &&
+      (window.sessionStorage.getItem(CLAIM_DISMISSED_KEY) === "done" ||
+        new URLSearchParams(window.location.search).get("enter") === "1" ||
+        doorParam === "0"),
+  );
+  const [arrivalPeer, setArrivalPeer] = useState<LivePeer | null>(null);
+  const arrivalTimer = useRef<number | null>(null);
+  const seenPeerIds = useRef<Set<string> | null>(null);
+  const [recapOpen, setRecapOpen] = useState(false);
+  const [recapRunId, setRecapRunId] = useState(0);
+  const [recapCites, setRecapCites] = useState<string[]>([]);
+  const [recapHover, setRecapHover] = useState<string | null>(null);
+  const [highlightMessageId, setHighlightMessageId] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Whatever you picked off the tray, riding the cursor until you click it down.
+  const [placing, setPlacing] = useState<PlacingItem | null>(null);
+  const [placingOrigin, setPlacingOrigin] = useState<
+    { x: number; y: number } | undefined
+  >(undefined);
+  // The rail's "+" opens the space maker; the dock's add opens the widget
+  // picker.
+  const [spacePickerOpen, setSpacePickerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const account = useAccount();
+  const { signOut } = useAuthActions();
+  const uploadAvatar = useAvatarUpload();
+  /* Sign out = become a fresh guest. The token swap needs a reload (see
+     JoinForm), and the tab's remembered persona goes with it. */
+  const leaveAccount = useCallback(() => {
+    void signOut().finally(() => {
+      resetIdentity();
+      window.location.reload();
+    });
+  }, [signOut]);
+  const [canvasAwayFromHome, setCanvasAwayFromHome] = useState(false);
+  const [customization, setCustomization] = useState<SpaceCustomization>(() =>
+    defaultSpaceCustomization(getSpace(slug)),
+  );
+  const [spaceDraft, setSpaceDraft] = useState<SpaceCustomization | null>(null);
+  const [editingWidgetId, setEditingWidgetId] = useState("");
+  const [payoffFlashId, setPayoffFlashId] = useState("");
+  const payoffScrollTimer = useRef<number | null>(null);
+  const payoffFlashTimer = useRef<number | null>(null);
+  const [selectedWidgetId, setSelectedWidgetId] = useState("");
+  const [managedWidgetId, setManagedWidgetId] = useState("");
+  const [photoGallery, setPhotoGallery] = useState<PhotoGalleryState | null>(null);
+  /** The pile / a ship post opened full screen, with the rect it grew from. */
+  const [openRoom, setOpenRoom] = useState<
+    { kind: "pile" | "ship"; widgetId: string; origin: RoomOrigin } | null
+  >(null);
+  /** A hot-now row asked the reading room to open on one specific link. */
+  const [pendingLinkId, setPendingLinkId] = useState<string | null>(null);
+  /* The one piece of local state left on these three interactions, and it is
+     animation only: the daily question plays its scribble-wipe reveal off the
+     card's `localAnswer` prop, so the text you just posted lives here for the
+     length of that reveal. It is not a second source of truth — Convex has
+     the answer either way, and once the reveal is done the card reads your
+     row straight off the board like everyone else's. */
+  const [revealingAnswers, setRevealingAnswers] = useState<Record<string, string>>({});
+  const revealTimers = useRef<Record<string, number>>({});
+  useEffect(
+    () => () => {
+      for (const timer of Object.values(revealTimers.current)) {
+        window.clearTimeout(timer);
+      }
+    },
+    [],
+  );
+  const [focusedTarget, setFocusedTarget] = useState<FocusedTarget | null>(null);
+  const [canvasScale, setCanvasScale] = useState(1);
+  const [canvasCameraAnimating, setCanvasCameraAnimating] = useState(false);
+  const [threadDockPlacement, setThreadDockPlacement] =
+    useState<ThreadDockPlacement>("below");
+  const [threadDockSize, setThreadDockSize] = useState<ThreadDockSize>(
+    DEFAULT_THREAD_DOCK_SIZE,
+  );
+  const [soundEnabled, setSound] = useState(getSoundEnabled);
+  const [moreRight, setMoreRight] = useState(false);
+
+  const join = useMutation(api.spaces.joinDemoSpace);
+  const generatePhotoUploadUrl = useMutation(api.photos.generateUploadUrl);
+  const pinPhoto = useMutation(api.photos.addPhoto);
+  const shipImageUrl = useMutation(api.photos.storageUrl);
+  const addPaintStroke = useMutation(api.paint.addStroke);
+  const clearPaint = useMutation(api.paint.clear);
+  const ensureCozyColorWidget = useMutation(api.paint.ensureCozyColorWidget);
+  const doorForced = isInviteEntry || doorParam === "1";
+  const roomEntered = (entered || (!doorForced && space?.door === false)) && !isInviteEntry;
+  /* The identity popover: your cursor rides while it is open (so "that's
+     your cursor" is literally true), and it leaves the way the gate does —
+     the card collapses into the cursor, then the drawn cursor hands over. */
+  const openClaim = useCallback((event: { clientX: number; clientY: number }) => {
+    if (claimTimer.current) window.clearTimeout(claimTimer.current);
+    setClaimLeaving(false);
+    setClaimPoint({ x: event.clientX, y: event.clientY });
+    setClaimOpen(true);
+  }, []);
+  const closeClaim = useCallback(() => {
+    if (!claimOpen) return;
+    playSound("tap");
+    setClaimOpen(false);
+    setClaimLeaving(true);
+    if (claimTimer.current) window.clearTimeout(claimTimer.current);
+    claimTimer.current = window.setTimeout(
+      () => setClaimLeaving(false),
+      GATE_LEAVE_MS,
+    );
+  }, [claimOpen]);
+
+  /* The door opens. The card collapses into your cursor (ClaimCard, 440ms),
+     then the scrim lifts (from 120ms, 500ms) over a canvas that was there all
+     along; the header enters at 200ms and presence joins. Invite links swap
+     the route at the end — that remount plays the full space entrance. */
+  const enterRoom = useCallback(() => {
+    if (gateLeaving) return;
+    window.sessionStorage.setItem(CLAIM_DISMISSED_KEY, "done");
+    playSound("place");
+    setGateLeaving(true);
+    const settle = window.setTimeout(() => {
+      setEntered(true);
+      if (space) void join({ spaceId: space._id, ...identity });
+    }, GATE_SETTLE_MS);
+    const leave = window.setTimeout(() => {
+      setGateLeaving(false);
+      if (isInviteEntry) window.location.hash = normalSpaceHash(slug);
+    }, GATE_LEAVE_MS);
+    gateTimers.current = [settle, leave];
+  }, [gateLeaving, identity, isInviteEntry, join, slug, space]);
+  useEffect(
+    () => () => {
+      gateTimers.current.forEach((timer) => window.clearTimeout(timer));
+      if (claimTimer.current) window.clearTimeout(claimTimer.current);
+    },
+    [],
+  );
+
+  // A space someone made has no fixture, and getSpace() would hand back the
+  // CREW's name/colour/faces for it. Prefer the live row whenever the slug
+  // isn't one of the seeded showcase spaces.
+  // ...but the fixture is a LAYOUT source (widgets, canvas size, faces), not
+  // the source of truth for what the room is called. The live row wins on the
+  // nameplate fields, so renaming a space in the DB actually shows up instead
+  // of being masked by a stale fixture.
+  const mockSpace = useMemo(() => {
+    const fixture = SPACES_BY_ID[playLab ? PLAY_LAB_SOURCE : slug];
+    if (!fixture) return space ? spaceFromLive(space) : getSpace(slug);
+    if (!space) return fixture;
+    return {
+      ...fixture,
+      name: space.name ?? fixture.name,
+      tagline: space.tagline ?? fixture.tagline,
+      icon: space.icon ?? fixture.icon,
+    };
+  }, [playLab, slug, space]);
+  const isInvalidInvite = isInviteEntry && !SPACES_BY_ID[slug] && status === "missing";
+  // A slug the backend has no space for. Authoritative in live mode: a slug
+  // can exist in the mock fixtures (#/space/trip does) and still be missing on
+  // the deployment, in which case we used to fall through to the claim gate
+  // and never render a canvas — an infinite "name yourself for a space that
+  // isn't there". Show the same dead-link card the invite path uses.
+  const isMissingSpace =
+    !isInviteEntry && mode === "live" && status === "missing";
+  /* Hold the door until the room row says whether it has one, so a door-off
+     room never flashes the card on a cold load. */
+  const doorKnown = doorForced || mode !== "live" || space !== undefined;
+  const gateOpen = !roomEntered && doorKnown && !isInvalidInvite && !isMissingSpace;
+  useEffect(() => {
+    setCustomization(defaultSpaceCustomization(mockSpace));
+    setSpaceDraft(null);
+    setPhotoGallery(null);
+    setOpenRoom(null);
+  }, [mockSpace, slug]);
+  const activeCustomization = spaceDraft ?? customization;
+  const members = mockSpace.members;
+  const presence = usePresence(
+    roomEntered ? space?._id : undefined,
+    identity,
+    wrapperRef,
+    canvasScaleLayerRef,
+  );
+  /* "who is here" has exactly one source: the presence component's room
+     occupancy, keyed by the same room id RoomPresenceHeartbeat registers
+     under and read with the same query the rail reads. The header and the
+     canvas's live strip both take this number, so they cannot disagree. */
+  const hereCount = useQuery(
+    api.roomPresence.onlineForSpace,
+    space?.slug ? { spaceId: space.slug, userId: presenceId } : "skip",
+  )?.total;
+  /* The board's raw rows, for their createdAt — the adapted widgets the page
+     draws with drop it. Same query + args as useSpaceData's, so the client
+     shares one subscription rather than opening a second. */
+  const boardRows = useQuery(
+    api.spaces.getSpaceWithWidgets,
+    mode === "live" ? { slug } : "skip",
+  );
+  // Real cursor pagination server-side; the page auto-loads-more so the demo
+  // still sees full space history without an infinite-scroll UI.
+  const messagesPage = usePaginatedQuery(
+    api.messages.listBySpace,
+    space ? { spaceId: space._id } : "skip",
+    { initialNumItems: 200 },
+  );
+  useEffect(() => {
+    if (messagesPage.status === "CanLoadMore") messagesPage.loadMore(200);
+  }, [messagesPage.status, messagesPage.loadMore]);
+  const allMessages =
+    messagesPage.status === "LoadingFirstPage" ? undefined : messagesPage.results;
+  const paintRows = useQuery(api.paint.listBySpace, space ? { spaceId: space._id } : "skip");
+  const sparkQuestions = useAction(api.questions.sparkQuestions);
+  /** Which web post conversation starter the thread dock is answering. */
+  const [activeQuestionId, setActiveQuestionId] = useState("");
+  const handlers = useLiveHandlers(space?._id, identity, presence, widgets);
+  /* Roundtable cards preview the tail of their own thread — same subscription
+     the thread dock reads, grouped by widget. */
+  const roundtableRepliesByWidget = useMemo(() => {
+    const grouped: Record<string, RoundtableReply[]> = {};
+    if (!allMessages) return grouped;
+    for (const widget of widgets ?? []) {
+      if (widget.type !== "roundtable") continue;
+      grouped[widget.id] = allMessages
+        .filter((message) => message.widgetId === widget.id)
+        .map((message) => ({
+          id: message._id,
+          from: message.authorName,
+          fromColor: message.authorColor,
+          fromAvatarUrl: message.authorAvatarUrl,
+          text: message.text,
+          time: relTime(message.createdAt),
+        }));
+    }
+    return grouped;
+  }, [allMessages, widgets]);
+  const paintStrokesByWidget = useMemo(() => {
+    const grouped: Record<string, CozyColorStroke[]> = {};
+    for (const row of paintRows ?? []) {
+      const widgetId = String(row.widgetId);
+      const stroke: CozyColorStroke = {
+        id: String(row._id),
+        userId: row.userId,
+        authorName: row.authorName,
+        authorColor: row.authorColor,
+        tone: row.tone,
+        size: row.size,
+        points: row.points,
+        regionId: row.regionId,
+        preset: row.preset,
+        createdAt: row.createdAt,
+      };
+      grouped[widgetId] = [...(grouped[widgetId] ?? []), stroke];
+    }
+    return grouped;
+  }, [paintRows]);
+  const paintStroke = useCallback(
+    async (widgetId: string, stroke: Omit<CozyColorStroke, "id" | "createdAt">) => {
+      if (!space) return null;
+      return await addPaintStroke({
+        spaceId: space._id,
+        widgetId: widgetId as Id<"widgets">,
+        ...stroke,
+      });
+    },
+    [addPaintStroke, space],
+  );
+  const clearPaintWidget = useCallback(
+    async (widgetId: string, regionPrefix?: string) => {
+      if (!space) return 0;
+      return await clearPaint({
+        spaceId: space._id,
+        widgetId: widgetId as Id<"widgets">,
+        regionPrefix,
+      });
+    },
+    [clearPaint, space],
+  );
+  const ensuredPaintSpaces = useRef(new Set<string>());
+  useEffect(() => {
+    if (slug !== "couple" || !space || widgets.some((widget) => widget.type === "cozyColor")) {
+      return;
+    }
+    const spaceId = String(space._id);
+    if (ensuredPaintSpaces.current.has(spaceId)) return;
+    ensuredPaintSpaces.current.add(spaceId);
+    void ensureCozyColorWidget({ spaceId: space._id, createdBy: identity.userId });
+  }, [ensureCozyColorWidget, identity.userId, slug, space, widgets]);
+  /* Every poll's votes, one subscription for the room (votes.inSpace). The
+     board used to subscribe to the first poll's results only, so a vote on a
+     second poll never repainted on anyone else's screen. */
+  const roomVotes = useQuery(api.votes.inSpace, mode === "live" && space ? { spaceId: space._id } : "skip");
+  const votesByPoll = useMemo(() => {
+    const byPoll = new Map<string, PollRow[]>();
+    for (const row of roomVotes ?? []) byPoll.set(row.widgetId, [...(byPoll.get(row.widgetId) ?? []), row]);
+    return byPoll;
+  }, [roomVotes]);
+  const pollSelections = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const row of roomVotes ?? []) if (row.userId === identity.userId) out[row.widgetId] = row.optionId;
+    return out;
+  }, [identity.userId, roomVotes]);
+
+  useEffect(() => {
+    if (!roomEntered || !space) return;
+    void join({ spaceId: space._id, ...identity });
+  }, [identity, join, roomEntered, space]);
+
+  useEffect(() => {
+    seenPeerIds.current = null;
+    setArrivalPeer(null);
+  }, [roomEntered, slug, space?._id]);
+
+  useEffect(() => {
+    if (!roomEntered || !presence.queryReady) return;
+    const currentIds = new Set(presence.peers.map((peer) => peer.userId));
+    if (seenPeerIds.current === null) {
+      seenPeerIds.current = currentIds;
+      return;
+    }
+
+    const newcomer = presence.peers.find((peer) => !seenPeerIds.current?.has(peer.userId));
+    seenPeerIds.current = currentIds;
+    if (!newcomer) return;
+
+    setArrivalPeer(newcomer);
+    if (arrivalTimer.current !== null) window.clearTimeout(arrivalTimer.current);
+    arrivalTimer.current = window.setTimeout(() => {
+      setArrivalPeer(null);
+      arrivalTimer.current = null;
+    }, 2000);
+    playSound("place");
+  }, [presence.peers, presence.queryReady, roomEntered]);
+
+  useEffect(() => {
+    return () => {
+      if (arrivalTimer.current !== null) window.clearTimeout(arrivalTimer.current);
+    };
+  }, []);
+
+  const boardWidgets = useMemo<Widget[]>(
+    () => widgets.map((widget) => {
+      const next = handlers.overrides[widget.id];
+      const withOverride = next ? { ...widget, ...next } : widget;
+      return withOverride.type === "poll" && roomVotes
+        ? mergePollRows(withOverride, votesByPoll.get(withOverride.id) ?? [], identity.userId, members)
+        : withOverride;
+    }),
+    [handlers.overrides, identity.userId, members, roomVotes, votesByPoll, widgets],
+  );
+  /* Lift *your* row out of every rsvp / daily-question card, the same split
+     mergePollRows makes between `mine` and `others`. Both cards render you as
+     "You" on top of the rest, so handing them the whole stored list would
+     count you twice; instead your row comes back through the props they
+     already have (`rsvpSelection` / `localAnswer` / `localReactions`). */
+  const {
+    widgets: adaptedWidgets,
+    rsvpSelections,
+    dailyAnswers,
+    dailyReactions,
+  } = useMemo(() => {
+    const rsvpSelections: Record<string, RsvpStatus> = {};
+    const dailyAnswers: Record<string, string> = {};
+    const dailyReactions: Record<string, Record<string, string>> = {};
+    const widgets = boardWidgets.map((widget) => {
+      if (widget.type === "rsvp") {
+        const responses = rsvpResponsesOf(widget);
+        const mine = responses.find((row) => row.userId === identity.userId);
+        if (!mine) return widget;
+        rsvpSelections[widget.id] = mine.status;
+        return {
+          ...widget,
+          data: { ...widget.data, responses: responses.filter((row) => row !== mine) },
+        };
+      }
+      if (widget.type === "dailyQ") {
+        const answers = dailyAnswersOf(widget);
+        const mineIndex = answers.findIndex(
+          (answer) => answer.userId === identity.userId,
+        );
+        /* Two ways your own answer can render. While the reveal is playing the
+           card appends it itself from `localAnswer`, so we hold it out of the
+           list to avoid a double. After that it stays in the list, renamed
+           "You" — which is how reactions other people leave on *your* answer
+           reach you, since the card's own "You" bubble carries none. */
+        const revealing = revealingAnswers[widget.id];
+        if (revealing !== undefined) dailyAnswers[widget.id] = revealing;
+        const myReactions: Record<string, string> = {};
+        const rows: LiveDailyAnswer[] = [];
+        answers.forEach(({ reactedBy, ...answer }, index) => {
+          const isMine = index === mineIndex;
+          if (isMine && revealing !== undefined) return;
+          const row: LiveDailyAnswer = isMine ? { ...answer, name: "You" } : answer;
+          if (reactedBy) {
+            // Everyone's live reaction joins the seeded tally, except your own
+            // on someone else's answer — the card adds that back itself from
+            // `localReactions`, so counting it here would double it.
+            const reactions = { ...(answer.reactions ?? {}) };
+            for (const [userId, emoji] of Object.entries(reactedBy)) {
+              if (!isMine && userId === identity.userId) {
+                myReactions[row.name] = emoji;
+                continue;
+              }
+              reactions[emoji] = [...(reactions[emoji] ?? []), userId];
+            }
+            row.reactions = reactions;
+          }
+          rows.push(row);
+        });
+        if (Object.keys(myReactions).length > 0) dailyReactions[widget.id] = myReactions;
+        return {
+          ...widget,
+          data: {
+            ...widget.data,
+            answers: rows,
+            // Never written back — the stored flag is one shared boolean, so
+            // this only ever unlocks the card for the person who answered.
+            youAnswered:
+              Boolean(widget.data.youAnswered) ||
+              (mineIndex !== -1 && revealing === undefined),
+          },
+        };
+      }
+      return widget;
+    });
+    return { widgets, rsvpSelections, dailyAnswers, dailyReactions };
+  }, [boardWidgets, identity.userId, revealingAnswers]);
+  /* "your turn": computed from what this page already holds, plus every
+     poll's votes (the board itself only subscribes to the first poll's). A
+     joined member gets everything waiting on them; a silent guest (not
+     email-joined) has nothing on them, so they get three places to jump in. */
+  const turnPolls = useMemo(() => {
+    const voted: Record<string, string> = {};
+    const byPoll = new Map<string, Map<string, string[]>>();
+    for (const row of roomVotes ?? []) {
+      if (row.userId === identity.userId) { voted[row.widgetId] = row.optionId; continue; }
+      const options = byPoll.get(row.widgetId) ?? new Map<string, string[]>();
+      options.set(row.optionId, [...(options.get(row.optionId) ?? []), row.voterName]);
+      byPoll.set(row.widgetId, options);
+    }
+    const widgets = adaptedWidgets.map((widget) => {
+      if (widget.type !== "poll" || !Array.isArray(widget.data.options)) return widget;
+      const options = byPoll.get(widget.id);
+      return {
+        ...widget,
+        data: {
+          ...widget.data,
+          options: (widget.data.options as Record<string, unknown>[]).map((option) => ({
+            ...option,
+            voters: options?.get(String(option.id)) ?? [],
+          })),
+        },
+      };
+    });
+    return { widgets, voted };
+  }, [adaptedWidgets, identity.userId, roomVotes]);
+  // the board as the voice router reads it (every poll's voters folded in)
+  const turnPollsRef = useRef(turnPolls.widgets);
+  turnPollsRef.current = turnPolls.widgets;
+  const openRecapRef = useRef<() => void>(() => {});
+  const respondToRsvpRef = useRef<(widgetId: string, status: RsvpStatus) => void>(() => {});
+  /* Games, live (convex/games.ts): the scoreboard and the game card are placed like any card,
+     in the board, once per room; nothing about them is stored as a widget row. */
+  const games = useLiveGames({
+    room: slug,
+    spaceId: space?._id,
+    identity,
+    // a made room gets games too (N1); the jigsaw stays in the tour rooms (it puzzles their group photo)
+    enabled: mode === "live" && roomEntered && (LIVE_GAME_ROOMS.has(slug) || Boolean(space?.ownerId)),
+    flyTo: goToTurnWidget,
+  });
+  /* the live puzzle (convex/puzzles.ts): real hands only, the space's is absent */
+  const jigsaw = useLiveJigsaw({ room: slug, spaceId: space?._id, identity, enabled: mode === "live" && roomEntered && LIVE_GAME_ROOMS.has(slug), flyTo: goToTurnWidget });
+  const jigsawOverlay = useMemo(() => <JigsawWorld />, []);
+  const gamesRef = useRef(games);
+  const jigsawRef = useRef(jigsaw);
+  jigsawRef.current = jigsaw;
+  gamesRef.current = games;
+  const gameWidgets = useMemo<Widget[]>(() => {
+    if (!games || adaptedWidgets.length === 0) return [];
+    const spot = gameSpots(slug, adaptedWidgets, { w: space?.canvasW ?? snapshot?.canvasW ?? 1640, h: space?.canvasH ?? snapshot?.canvasH ?? 1080 });
+    const g = games.game;
+    const out: Widget[] = [
+      {
+        id: SCOREBOARD_WIDGET_ID, type: "scoreboard", ...spot.board, w: 300, z: 4, data: { title: "scoreboard" },
+        // head + rows + the foot's slot and start keys (the puzzle key too); the rows stretch into any slack (games.css .sb-rows)
+        h: 110 + 49 * Math.min(7, games.rows.length) + 144 + (games.challenge ? 40 + 30 * Math.min(4, games.challenge.rows.length) : 0) + (games.seatName && !(g && g.phase !== "done") ? 48 : 0),
+      },
+    ];
+    if (g && !(g.kind === "hot-seat" && g.phase === "done"))
+      out.push({
+        id: GAME_WIDGET_ID, type: "game", ...spot.card, ...GAME_CARD, z: 5,
+        data: {
+          title: g.name, name: g.name, phase: g.phase, startedBy: g.startedBy.name,
+          players: g.players.map((p) => p.name), youIn: g.players.some((p) => p.name === games.me.name),
+          round: g.round + 1, rounds: g.rounds.length,
+          ...(g.seat?.length === 1 && g.seat[0].name === games.me.name ? { ticket: "you're in the hot seat", waiting: `${g.startedBy.name.toLowerCase()} started a game about you. sit down` } : {}),
+        },
+      });
+    const keep = games.keepsake;
+    if (keep) out.push({ id: KEEPSAKE_WIDGET_ID, type: "keepsake", ...spot.card, w: 304, h: 112 + 37 * keep.rows.length, z: 6, data: { title: keep.title } });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adaptedWidgets, Boolean(games), games?.game, games?.rows.length, games?.challenge?.rows.length, games?.seatName, games?.me.name, slug, snapshot?.canvasW, snapshot?.canvasH, space?.canvasW, space?.canvasH]);
+  const turnViewer = useMemo<TurnViewer>(
+    () => ({
+      name: identity.name,
+      userId: identity.userId,
+      standing: account.joined ? "member" : "guest",
+    }),
+    [account.joined, identity.name, identity.userId],
+  );
+  /* Choices become a vote (convex/choiceVotes.ts, components/ChoiceVote.tsx): open votes ride on their cards,
+     and each one is a "waiting on you" ticket for the people whose choice it is */
+  const voteRows = useQuery(api.choiceVotes.room, mode === "live" && space ? { spaceId: space._id } : "skip");
+  const answerVote = useMutation(api.choiceVotes.answer);
+  const withdrawVote = useMutation(api.choiceVotes.withdraw);
+  const rowVotes = useMemo<RowVote[]>(() => (voteRows ?? []).map((r) => ({ ...r, id: String(r.id), widgetId: String(r.widgetId) })), [voteRows]);
+  const onAnswerVote = useCallback(
+    (voteId: string, option: string) => void answerVote({ voteId: voteId as Id<"choiceVotes">, option, userId: identity.userId, name: identity.name }),
+    [answerVote, identity.name, identity.userId],
+  );
+  const voteTurns = useMemo<TurnItem[]>(
+    () =>
+      rowVotes.flatMap((v) => {
+        const mine = v.state === "open" ? voterOf(v.voters, identity.userId, identity.name) : null;
+        if (!mine || v.answers.some((a) => a.voter === mine)) return [];
+        const labels = labelsOf(v);
+        const asker = v.options.find((o) => o.by)?.by?.toLowerCase() ?? "someone";
+        return [{ key: `vote:${v.id}`, widgetId: v.widgetId, kind: "decide" as const, verb: "decide", title: questionOf(v, identity), waiting: `${asker} asked · ${v.stake}`, act: "decide" as const, choices: v.options.map((o) => ({ id: o.id, label: labels[o.id] })), soft: false, urgency: 400 }];
+      }),
+    [identity, rowVotes],
+  );
+  const turnItems = useMemo(
+    () => [...voteTurns, ...yourTurn({
+      /* a game you're not in is a ticket in the same list, ranked first while it's open */
+      widgets: [...turnPolls.widgets, ...gameWidgets.filter((w) => w.type === "game")],
+      members: members.map((member) => member.name),
+      viewer: turnViewer,
+      mine: { polls: { ...pollSelections, ...turnPolls.voted }, rsvps: rsvpSelections, answers: dailyAnswers },
+      // until the room's votes load, no poll can be read
+      knownPolls: roomVotes ? undefined : [],
+      sharedSeals: true,
+    })],
+    [dailyAnswers, gameWidgets, members, pollSelections, roomVotes, rsvpSelections, turnPolls, turnViewer, voteTurns],
+  );
+  /* `/?peers=3#/space/house` — the peers lab (src/live/labPeers.ts) on a real
+     space: the fixture's roster gets a cursor each, moving the way people do
+     between the cards the board actually has. Built once the board has
+     loaded; local only, nothing is written to presence. */
+  const boardLoaded = adaptedWidgets.length > 0;
+  const labPeers = useMemo(() => {
+    const wanted = labPeersRequested();
+    if (!wanted || !boardLoaded) return null;
+    return createLabPeerFeed(mockSpace.members, adaptedWidgets, wanted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, boardLoaded]);
+  const liveCursors = useMemo(
+    () => (labPeers ? [...presence.peers, ...labPeers.rows] : presence.peers),
+    [presence.peers, labPeers],
+  );
+  /** The stored rows, for the three handlers below — they write what the
+      backend has, not the copy the canvas draws with. */
+  const rawWidgetsRef = useRef<Widget[]>(widgets);
+  rawWidgetsRef.current = widgets;
+  const overviewWidgetsRef = useRef<Widget[]>(mockSpace.widgets);
+  overviewWidgetsRef.current = adaptedWidgets.length
+    ? adaptedWidgets
+    : mockSpace.widgets;
+  /* ── the build room ──────────────────────────────────────────────────────
+     Link content comes from the fixtures; votes, pins, keeps and runtime drops
+     live in the pile widget's own `data`, so the whole room is reactive and
+     multiplayer over the existing `widgets.updateWidgetData` mutation. */
+  const pileWidget = useMemo(
+    () => adaptedWidgets.find((widget) => widget.type === "linkPile") ?? null,
+    [adaptedWidgets],
+  );
+  const buildRoomLinks = useMemo(
+    () => pileLinks(pileWidget).map(withBuildRoomCover),
+    [pileWidget],
+  );
+  /** Every message in the space, bucketed by its thread id. */
+  const messagesByThread = useMemo(() => {
+    const grouped: Record<string, RoomReply[]> = {};
+    for (const message of allMessages ?? []) {
+      (grouped[message.widgetId] ??= []).push({
+        id: message._id,
+        from: message.authorName,
+        color: message.authorColor,
+        avatarUrl: message.authorAvatarUrl,
+        text: message.text,
+        time: relTime(message.createdAt),
+      });
+    }
+    return grouped;
+  }, [allMessages]);
+  const buildRoomReplyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const [threadId, list] of Object.entries(messagesByThread)) {
+      counts[threadId] = list.length;
+    }
+    return linkReplyCounts(counts);
+  }, [messagesByThread]);
+  const openReadingRoom = useCallback(
+    (linkId?: string) => {
+      if (!pileWidget) return;
+      playSound("tap");
+      setManagedWidgetId("");
+      setEditingWidgetId("");
+      setSelectedWidgetId("");
+      setPickerOpen(false);
+      setRecapOpen(false);
+      setChatOpen(false);
+      setPendingLinkId(linkId ?? null);
+      setOpenRoom({
+        kind: "pile",
+        widgetId: pileWidget.id,
+        origin: roomOriginFor(pileWidget.id),
+      });
+    },
+    [pileWidget],
+  );
+  const buildRoomFeed = useMemo(
+    () =>
+      pileWidget
+        ? {
+            ...buildRoomFeedFrom(buildRoomLinks, buildRoomReplyCounts, members),
+            onOpenPile: openReadingRoom,
+          }
+        : undefined,
+    [buildRoomLinks, buildRoomReplyCounts, members, openReadingRoom, pileWidget],
+  );
+  /* Every pile write is a patch of the pile widget's own data. Reads come from
+     the live subscription, so two windows stay in step. */
+  const pileWidgetRef = useRef<Widget | null>(null);
+  pileWidgetRef.current = pileWidget;
+  const patchPile = useCallback(
+    (mutate: (data: PileData) => PileData) => {
+      const pile = pileWidgetRef.current;
+      if (!pile) return;
+      const next = mutate(readPileData(pile));
+      handlers.onUpdate(pile.id, { ...pile.data, ...next });
+    },
+    [handlers],
+  );
+
+  const voteOnLink = useCallback(
+    (linkId: string) => {
+      const link = buildRoomLinks.find((candidate) => candidate.id === linkId);
+      if (!link) return;
+      const voters = toggledVoters(link, identity.userId);
+      patchPile((data) => ({
+        ...data,
+        linkState: {
+          ...data.linkState,
+          [linkId]: { ...data.linkState?.[linkId], voters },
+        },
+      }));
+    },
+    [buildRoomLinks, identity.userId, patchPile],
+  );
+
+  const pinLink = useCallback(
+    (linkId: string) => {
+      const link = buildRoomLinks.find((candidate) => candidate.id === linkId);
+      if (!link) return;
+      patchPile((data) => ({
+        ...data,
+        linkState: {
+          ...data.linkState,
+          [linkId]: { ...data.linkState?.[linkId], pinned: !link.pinned },
+        },
+      }));
+    },
+    [buildRoomLinks, patchPile],
+  );
+
+  /* The climax: a takeaway leaves the reading room and lands on the canvas as
+     a pinned note inside the keepers frame. Idempotent — keeping twice is a
+     no-op, so a double click can't spawn two cards. */
+  const keepTakeaway = useCallback(
+    async (linkId: string) => {
+      const link = buildRoomLinks.find((candidate) => candidate.id === linkId);
+      const pile = pileWidgetRef.current;
+      if (!link || !pile || link.keptAt !== undefined) return;
+      const keepers = widgets?.find(
+        (widget) => widget.type === "frame" && widget.data.title === "keepers",
+      );
+      /* Every pinned note in the keepers frame, seeded or kept — new ones fan
+         off the stack instead of landing on top of one. */
+      const slot =
+        widgets?.filter((widget) => widget.type === "note" && widget.data.pin).length ?? 0;
+      /* Measured before the room closes — the note flies in from the card the
+         takeaway was read on. */
+      const from =
+        document.querySelector(".rr-hero-snap")?.getBoundingClientRect() ?? null;
+      const created = await handlers.onCreate({
+        type: "note",
+        ...keeperNoteSlot(keepers, slot),
+        z: 1000 + slot,
+        rotate: slot % 2 === 0 ? -1.2 : 1.4,
+        data: {
+          kicker: link.kind === "docs" ? "reference" : "rule of thumb",
+          title: link.title,
+          text: link.whyItMatters || link.description,
+          author: identity.name,
+          tone: "white",
+          pin: true,
+          keptLinkId: link.id,
+        },
+      });
+      patchPile((data) => ({
+        ...data,
+        linkState: {
+          ...data.linkState,
+          [linkId]: {
+            ...data.linkState?.[linkId],
+            keptAt: Date.now(),
+            keptWidgetId: created ? String(created) : undefined,
+          },
+        },
+      }));
+      /* After the room's 480ms exit cue plus its 300ms shrink. */
+      if (created) {
+        window.setTimeout(() => void flyWidgetIn(String(created), from), 860);
+      }
+    },
+    [buildRoomLinks, handlers, identity.name, patchPile, widgets],
+  );
+
+  /* Paste 1–10 urls: placeholder rows appear immediately, then Firecrawl fills
+     them in one at a time — the patches are read-modify-write on one document,
+     so they must not race each other. */
+  const dropLinks = useCallback(
+    async (urls: string[]) => {
+      const pile = pileWidgetRef.current;
+      if (!pile) return;
+      const existing = new Set(buildRoomLinks.map((link) => link.url));
+      const fresh = urls.filter((url) => !existing.has(url));
+      if (fresh.length === 0) return;
+      const batchKey = `drop-${Date.now()}`;
+      const pending: BuildRoomLink[] = fresh.map((url, index) => ({
+        id: `${batchKey}-${index}`,
+        url,
+        domain: url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0],
+        title: "",
+        description: "",
+        imageUrl: "",
+        kind: "article",
+        whyItMatters: "",
+        questions: [],
+        status: "pending",
+        batchKey,
+        droppedBy: identity.userId,
+        droppedByName: identity.name,
+        droppedAt: Date.now(),
+        voters: [],
+      }));
+      patchPile((data) => ({ ...data, dropped: [...pending, ...(data.dropped ?? [])] }));
+
+      for (const link of pending) {
+        let patch: Partial<BuildRoomLink>;
+        try {
+          const scraped = await handlers.onResolveLink(link.url);
+          patch = {
+            title: scraped.title,
+            description: scraped.description,
+            imageUrl: scraped.imageUrl,
+            domain: scraped.siteName || link.domain,
+            kind: guessLinkKind(scraped.url || link.url),
+            whyItMatters: scraped.description,
+            questions: cannedLinkQuestions(scraped.title || link.url),
+            status: "ready",
+          };
+        } catch {
+          patch = { status: "failed", title: link.domain };
+        }
+        patchPile((data) => ({
+          ...data,
+          dropped: (data.dropped ?? []).map((entry) =>
+            entry.id === link.id ? { ...entry, ...patch } : entry,
+          ),
+        }));
+      }
+    },
+    [buildRoomLinks, handlers, identity.name, identity.userId, patchPile],
+  );
+
+  /* Firecrawl web search: one topic → a batch of ready cards straight into the
+     pile (search already returns title + summary, so no pending pass). */
+  const searchTopic = useCallback(
+    async (query: string) => {
+      const pile = pileWidgetRef.current;
+      if (!pile) return;
+      const hits = await handlers.onSearchTopic(query);
+      if (hits.length === 0) return;
+      const existing = new Set(buildRoomLinks.map((link) => link.url));
+      const batchKey = `search-${Date.now()}`;
+      const fresh: BuildRoomLink[] = hits
+        .filter((hit) => !existing.has(hit.url))
+        .map((hit, index) => ({
+          id: `${batchKey}-${index}`,
+          url: hit.url,
+          domain: hit.siteName || hit.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0],
+          title: hit.title,
+          description: hit.description,
+          imageUrl: hit.imageUrl,
+          kind: "article",
+          whyItMatters: hit.description,
+          questions: cannedLinkQuestions(hit.title || hit.url),
+          status: "ready",
+          batchKey,
+          droppedBy: identity.userId,
+          droppedByName: `${identity.name} 🔎`,
+          droppedAt: Date.now(),
+          voters: [],
+        }));
+      if (fresh.length === 0) return;
+      patchPile((data) => ({ ...data, dropped: [...fresh, ...(data.dropped ?? [])] }));
+    },
+    [buildRoomLinks, handlers, identity.name, identity.userId, patchPile],
+  );
+
+  /* Firecrawl durable crawl: kick it off, then subscribe to live pages in the
+     CrawlStrip (rendered below) instead of racing many patches onto the pile. */
+  const [activeCrawl, setActiveCrawl] = useState<string | null>(null);
+  const crawlSiteHandler = useCallback(
+    async (url: string) => {
+      try {
+        const { crawlId } = await handlers.onCrawlSite(url);
+        setActiveCrawl(crawlId);
+      } catch {
+        /* bad URL / crawl refused — nothing to show */
+      }
+    },
+    [handlers],
+  );
+
+  /* "+ pile" on a crawled page: one card, same shape as a search hit. */
+  const keepCrawlPage = useCallback(
+    (hit: { url: string; title: string; description: string }) => {
+      const pile = pileWidgetRef.current;
+      if (!pile) return;
+      if (buildRoomLinks.some((link) => link.url === hit.url)) return;
+      const id = `crawl-${Date.now()}`;
+      const domain = hit.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+      const row: BuildRoomLink = {
+        id,
+        url: hit.url,
+        domain,
+        title: hit.title || domain,
+        description: hit.description,
+        imageUrl: "",
+        kind: "article",
+        whyItMatters: hit.description,
+        questions: cannedLinkQuestions(hit.title || hit.url),
+        status: "ready",
+        batchKey: id,
+        droppedBy: identity.userId,
+        droppedByName: `${identity.name} 🕸`,
+        droppedAt: Date.now(),
+        voters: [],
+      };
+      patchPile((data) => ({ ...data, dropped: [row, ...(data.dropped ?? [])] }));
+    },
+    [buildRoomLinks, identity.name, identity.userId, patchPile],
+  );
+
+  const retryLink = useCallback(
+    (linkId: string) => {
+      const link = buildRoomLinks.find((candidate) => candidate.id === linkId);
+      if (!link) return;
+      patchPile((data) => ({
+        ...data,
+        dropped: (data.dropped ?? []).filter((entry) => entry.id !== linkId),
+      }));
+      void dropLinks([link.url]);
+    },
+    [buildRoomLinks, dropLinks, patchPile],
+  );
+
+  const shipRoomWidget = useMemo(
+    () =>
+      openRoom?.kind === "ship"
+        ? adaptedWidgets.find((widget) => widget.id === openRoom.widgetId) ?? null
+        : null,
+    [adaptedWidgets, openRoom],
+  );
+
+  /** Same two-step upload the memory wall uses: bytes to storage, url to data. */
+  const attachShipImage = useCallback(
+    async (widgetId: string, file: File) => {
+      const widget = widgets?.find((candidate) => candidate.id === widgetId);
+      if (!widget) return;
+      const uploadUrl = await generatePhotoUploadUrl();
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "image/png" },
+        body: file,
+      });
+      if (!response.ok) throw new Error("ship image upload failed");
+      const { storageId } = (await response.json()) as { storageId: string };
+      const url = await shipImageUrl({ storageId: storageId as Id<"_storage"> });
+      if (url) handlers.onUpdate(widgetId, { ...widget.data, imageUrl: url });
+    },
+    [generatePhotoUploadUrl, handlers, shipImageUrl, widgets],
+  );
+
+  const closeRoom = useCallback(() => {
+    setOpenRoom(null);
+    setPendingLinkId(null);
+    setManagedWidgetId("");
+  }, []);
+
+  const photoGalleryWidget = useMemo(
+    () => adaptedWidgets.find(
+      (widget) => widget.id === photoGallery?.widgetId && widget.type === "photoWall",
+    ) ?? null,
+    [adaptedWidgets, photoGallery?.widgetId],
+  );
+  /* Notes written on the backs of the wall's prints — sub-threads riding the
+     message pipes with `<widgetId>::photo:<photoKey>` keys, like the reading
+     circle's `::q:` starters. */
+  const photoGalleryComments = useMemo(() => {
+    if (!photoGalleryWidget) return {};
+    const prefix = `${photoGalleryWidget.id}::photo:`;
+    const map: Record<string, PhotoComment[]> = {};
+    for (const message of allMessages ?? []) {
+      if (!message.widgetId.startsWith(prefix)) continue;
+      (map[message.widgetId.slice(prefix.length)] ??= []).push({
+        id: message._id,
+        name: message.authorName,
+        color: message.authorColor,
+        text: message.text,
+        time: relTime(message.createdAt),
+      });
+    }
+    return map;
+  }, [allMessages, photoGalleryWidget]);
+  /* Stable callbacks for the memoized gallery — routed through refs so
+     presence/chat re-renders don't hand it fresh function identities. */
+  const galleryWidgetIdRef = useRef<string | null>(null);
+  galleryWidgetIdRef.current = photoGalleryWidget?.id ?? null;
+  const gallerySendRef = useRef(handlers.onSend);
+  gallerySendRef.current = handlers.onSend;
+  const addPhotoToWall = useCallback(
+    async (file: File, caption: string) => {
+      const widgetId = galleryWidgetIdRef.current;
+      if (!widgetId) return;
+      const uploadUrl = await generatePhotoUploadUrl();
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "image/jpeg" },
+        body: file,
+      });
+      if (!response.ok) throw new Error("photo upload failed");
+      const { storageId } = (await response.json()) as { storageId: string };
+      await pinPhoto({
+        widgetId: widgetId as Id<"widgets">,
+        spaceId: space!._id,
+        storageId: storageId as Id<"_storage">,
+        caption,
+        by: identity.name,
+      });
+    },
+    [generatePhotoUploadUrl, identity.name, pinPhoto],
+  );
+  const sendPhotoComment = useCallback((photoId: string, text: string) => {
+    const widgetId = galleryWidgetIdRef.current;
+    if (widgetId) gallerySendRef.current(`${widgetId}::photo:${photoId}`, text);
+  }, []);
+  const closePhotoGallery = useCallback(() => {
+    setPhotoGallery(null);
+    setManagedWidgetId("");
+  }, []);
+  const globalMessages = useMemo(
+    () => (allMessages ?? [])
+      .filter((message) => message.widgetId === "global")
+      .map(toChatMessage),
+    [allMessages],
+  );
+  const commentCounts = useMemo(
+    () => Object.fromEntries(
+      (allMessages ?? [])
+        .filter((message) => message.widgetId !== "global" && message.widgetId !== RECAP_THREAD_ID)
+        .reduce(
+          // Question threads ("<widget>::q:<id>") count toward their widget's chip.
+          (counts, message) => {
+            const widgetId = message.widgetId.split("::")[0];
+            return counts.set(widgetId, (counts.get(widgetId) ?? 0) + 1);
+          },
+          new Map<string, number>(),
+        ),
+    ),
+    [allMessages],
+  );
+  const promotable = globalMessages.find((message) => message.promotable);
+  const generateRecap = useAction(api.recap.generate);
+  const askRecap = useAction(api.recap.ask);
+  const createAskStream = useMutation(api.streaming.createAskStream);
+  const latestRecap = useQuery(api.recap.latest, space ? { spaceId: space._id } : "skip");
+  // persistent-text-streaming: the answer to a follow-up question arrives
+  // token by token over /api/ask-stream. The ask row says which stream and
+  // which turn it fills; the turn is empty until the last token lands, so an
+  // empty one means this answer is still being written.
+  const askStream = useQuery(api.streaming.latestAskStream, space ? { spaceId: space._id } : "skip");
+  const [drivenStreamId, setDrivenStreamId] = useState<string | null>(null);
+  const askRow = useMemo(
+    () =>
+      askStream
+        ? (allMessages ?? []).find((message) => message._id === askStream.messageId)
+        : undefined,
+    [askStream, allMessages],
+  );
+  const pendingAskMessageId = askRow && !askRow.text ? askRow._id : null;
+  // Driving = this tab minted the stream, so it reads the HTTP body. Everyone
+  // else (a reload, a second viewer) gets the same text reactively out of
+  // getAskStreamBody instead of missing the answer entirely.
+  const askBody = useStream(
+    api.streaming.getAskStreamBody,
+    ASK_STREAM_URL,
+    Boolean(pendingAskMessageId) && askStream?.streamId === drivenStreamId,
+    pendingAskMessageId && askStream ? (askStream.streamId as StreamId) : undefined,
+  );
+  const askFailed =
+    Boolean(pendingAskMessageId) &&
+    !askBody.text &&
+    (askBody.status === "error" || askBody.status === "timeout");
+  // The answer, from whichever half of the component has it: the live stream
+  // while it runs, the finished turn once the last token has been saved.
+  const askText = askRow?.text || askBody.text;
+  const askTextRef = useRef("");
+  askTextRef.current = askText;
+  /* Tokens land in bursts — a whole sentence can arrive in one frame — so the
+     reveal chases the text at reading pace instead of printing a paragraph at
+     once. Same pace as the mock reveal (data/recap.ts). Only a turn we watched
+     start gets typed: one that was already finished when you opened the panel
+     is simply there. */
+  const [typing, setTyping] = useState<{ messageId: string; shown: number } | null>(null);
+  const [reduceMotion] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useEffect(() => {
+    if (!pendingAskMessageId) return;
+    setTyping((current) =>
+      current?.messageId === pendingAskMessageId
+        ? current
+        : { messageId: pendingAskMessageId, shown: 0 },
+    );
+  }, [pendingAskMessageId]);
+  useEffect(() => {
+    // Reduced motion: no reveal at all — every chunk shows the moment it lands.
+    if (!typing || reduceMotion) return;
+    let timer = 0;
+    const tick = () => {
+      setTyping((current) => {
+        if (!current) return current;
+        const shown = Math.min(askTextRef.current.length, current.shown + RECAP_STREAM_CHARS);
+        return shown === current.shown ? current : { ...current, shown };
+      });
+      timer = window.setTimeout(tick, RECAP_STREAM_MS);
+    };
+    timer = window.setTimeout(tick, RECAP_STREAM_MS);
+    return () => window.clearTimeout(timer);
+  }, [reduceMotion, typing?.messageId]);
+  // Caught up with an answer that has stopped growing: hand the turn back to
+  // the message row it was saved into.
+  const typedOut =
+    Boolean(typing) &&
+    Boolean(askRow?.text) &&
+    (reduceMotion || (typing?.shown ?? 0) >= (askRow?.text.length ?? 0));
+  useEffect(() => {
+    if (typedOut) setTyping(null);
+  }, [typedOut]);
+  const recapLines = useMemo<RecapLine[]>(
+    () =>
+      latestRecap
+        ? latestRecap.lines.map((line) => ({ ...line, text: cleanRecapText(line.text) }))
+        : EMPTY_RECAP_LINES,
+    [latestRecap],
+  );
+  const recapSince = latestRecap?.since ?? "";
+  const recapTargets = useMemo(() => recapTargetsOf(adaptedWidgets), [adaptedWidgets]);
+  const recapTurns = useMemo<RecapTurn[]>(
+    () =>
+      (allMessages ?? [])
+        .filter((message) => message.widgetId === RECAP_THREAD_ID)
+        // A stream that died leaves its turn empty forever — drop it, the
+        // non-streaming fallback below answers the question instead.
+        .filter((message) => !(askFailed && message._id === pendingAskMessageId))
+        .map((message) => ({
+          id: message._id,
+          from: message.authorName,
+          fromColor: message.authorColor,
+          fromEmoji: message.authorEmoji,
+          fromAvatarUrl: message.authorAvatarUrl,
+          text:
+            typing?.messageId === message._id
+              ? reduceMotion
+                ? askText
+                : askText.slice(0, typing.shown)
+              : message.text,
+          isRecap: message.userId === "recap",
+          streaming: typing?.messageId === message._id,
+        })),
+    [allMessages, askFailed, askText, pendingAskMessageId, reduceMotion, typing],
+  );
+  const [recapBusy, setRecapBusy] = useState(false);
+  const [recapAsking, setRecapAsking] = useState(false);
+  const recapGenerating = useRef(false);
+  const promotePosition = slug === "crew"
+    ? { x: 1072, y: 660 }
+    : { x: 1080, y: 448 };
+  const promotedMessageIds = useMemo(
+    () => new Set(
+      widgets
+        .map((widget) => widget.data.promotedFromMessageId)
+        .filter(Boolean)
+        .map(String),
+    ),
+    [widgets],
+  );
+  const promotedWidgets = useMemo(
+    () => widgets.filter((widget) => Boolean(widget.data.promotedFromMessageId)),
+    [widgets],
+  );
+  const previousPromotedWidgetIds = useRef<Set<string> | null>(null);
+  const previousPromotedSlug = useRef(slug);
+  useEffect(() => {
+    if (previousPromotedSlug.current !== slug) {
+      previousPromotedSlug.current = slug;
+      previousPromotedWidgetIds.current = null;
+    }
+    const widgetIds = new Set(promotedWidgets.map((widget) => widget.id));
+    if (previousPromotedWidgetIds.current === null) {
+      previousPromotedWidgetIds.current = widgetIds;
+      return;
+    }
+    const newWidget = promotedWidgets.find(
+      (widget) => !previousPromotedWidgetIds.current?.has(widget.id),
+    );
+    previousPromotedWidgetIds.current = widgetIds;
+    if (!newWidget) return;
+    setChatOpen(false);
+    setPayoffFlashId(newWidget.id);
+    if (payoffScrollTimer.current !== null) {
+      window.clearTimeout(payoffScrollTimer.current);
+    }
+    if (payoffFlashTimer.current !== null) {
+      window.clearTimeout(payoffFlashTimer.current);
+    }
+    payoffScrollTimer.current = window.setTimeout(() => {
+      document
+        .querySelector(`[data-widget-id="${newWidget.id}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      payoffScrollTimer.current = null;
+    }, 120);
+    payoffFlashTimer.current = window.setTimeout(() => {
+      setPayoffFlashId("");
+      payoffFlashTimer.current = null;
+    }, 2200);
+  }, [promotedWidgets, slug]);
+  useEffect(() => () => {
+    if (payoffScrollTimer.current !== null) {
+      window.clearTimeout(payoffScrollTimer.current);
+    }
+    if (payoffFlashTimer.current !== null) {
+      window.clearTimeout(payoffFlashTimer.current);
+    }
+  }, []);
+  /* The freshest real write we know about. Deliberately not the space's
+     lastActivityAt — that column is only ever written when a space is
+     created, so it is createdAt under another name. Widget and message
+     createdAt are the writes that actually happen while people are in here,
+     and both already stream in on subscriptions this page holds. */
+  const lastChangeAt = useMemo(() => {
+    /* Both sources, because neither is complete on its own. `createdAt` only
+       moves when something is *added*, so a drag, a resize or a title edit
+       would leave the line stale while someone is actively rearranging the
+       board. `spaces.lastActivityAt` covers those (convex/activity.ts bumps it
+       from every real write) but is throttled to one write a minute, so a
+       brand-new message would read a minute old. The max of the two is what
+       makes the words "last change" literally true. */
+    let newest = boardRows?.space?.lastActivityAt ?? 0;
+    for (const row of boardRows?.widgets ?? []) {
+      if (row.createdAt > newest) newest = row.createdAt;
+    }
+    for (const message of allMessages ?? []) {
+      if (message.createdAt > newest) newest = message.createdAt;
+    }
+    return newest || undefined;
+  }, [allMessages, boardRows]);
+  /* Someone's hand on a widget, named. presence rows carry the gesture, the
+     board carries the widget's title; the strip says it out loud. */
+  const liveGestures = useMemo(
+    () =>
+      liveCursors.flatMap((peer) => {
+        if (!peer.gesture) return [];
+        const target = widgets.find((widget) => widget.id === peer.gesture?.widgetId);
+        return [{
+          userId: peer.userId,
+          name: peer.name,
+          kind: peer.gesture.kind,
+          label: target ? widgetLabel(target) : undefined,
+        }];
+      }),
+    [liveCursors, widgets],
+  );
+  /* What the space itself is doing right now — the brain's slow actions
+     writing a line per real boundary (convex/work.ts). It outranks a
+     gesture on the strip because it is the only place that work is visible
+     at all; see the note in SpaceLiveStrip. */
+  const spaceWork = useSpaceWork(mode === "live" && space ? String(space._id) : undefined);
+  /* Say it → it builds (src/live/useVoiceBuild.ts): while you talk, code
+     shows the card it guesses and phrases go to Nemotron early through
+     convex/voiceBuild.ts `deal` (cards only, streamed back through `live`);
+     on the pause the card renders here first, then `commit` writes it and
+     sync lands it on every screen. */
+  const convex = useConvex();
+  const dealCards = useAction(api.voiceBuild.deal);
+  const commitCards = useMutation(api.voiceBuild.commit);
+  const amendCard = useMutation(api.voiceBuild.amend);
+  const warmDeal = useAction(api.voiceBuild.warm);
+  const noteDealLanded = useMutation(api.voiceBuild.noteLanded);
+  const decideCard = useAction(api.voiceBuild.decide);
+  const answerAsk = useAction(api.voiceBuild.answer);
+  /* Voice edits (lib/deck/edits.ts → convex/edits.ts): the change paints on this
+     screen at once (the same applyEdit the server runs), the server's door decides. */
+  const editMutation = useMutation(api.edits.apply);
+  const applyVoiceEdit = useMemo(
+    () => editMutation.withOptimisticUpdate((store, { spaceId, widgetId, op, today }) =>
+      heldByOthersRef.current.has(widgetId) ? undefined : patchWidgetData(store, spaceId, widgetId, (data) => {
+        const r = applyEdit({ type: adaptedTypesRef.current.get(widgetId) ?? "", data: data as Record<string, unknown> }, op, { today });
+        return r.ok ? (r.data as typeof data) : data;
+      })),
+    [editMutation],
+  );
+  const undoVoiceEdit = useMutation(api.edits.undo);
+  /* Right of Way (convex/leases.ts, convex/rightOfWay.ts): who holds what, and the AI writes waiting on them.
+     Your own hands go out through useHolds; the halo and the ghost are components/RightOfWay.tsx. */
+  const holds = useHolds({ spaceId: space?._id, me: identity, enabled: mode === "live" && roomEntered });
+  const leaseRows = useQuery(api.leases.forRoom, mode === "live" && space ? { spaceId: space._id } : "skip");
+  const rowRoom = useQuery(api.rightOfWay.room, mode === "live" && space ? { spaceId: space._id } : "skip");
+  const cancelPending = useMutation(api.rightOfWay.cancel);
+  const leases = useMemo<RowLease[]>(() => (leaseRows ?? []) as RowLease[], [leaseRows]);
+  const ghosts = useMemo<RowGhost[]>(() => (rowRoom?.ghosts ?? []).map((g) => ({ ...g, id: String(g.id), writeId: String(g.writeId), widgetId: g.widgetId ? String(g.widgetId) : undefined })), [rowRoom?.ghosts]);
+  const heldByOthersRef = useRef(new Set<string>());
+  heldByOthersRef.current = new Set(leases.filter((l) => l.userId !== identity.userId).map((l) => l.thing));
+  /* a wait's ending: the asker's voice drawer hears it (settled), every screen gets the slip */
+  const waitResolvers = useRef(new Map<string, (o: WaitOutcome) => void>());
+  const seenSettled = useRef<Set<string> | null>(null);
+  const [rowSlips, setRowSlips] = useState<{ id: string; widgetId: string; text: string; color: string }[]>([]);
+  useEffect(() => {
+    const settled = rowRoom?.settled;
+    if (!settled) return;
+    const keyOf = (r: (typeof settled)[number]) => `${r.id}:${r.outcome}`;
+    if (seenSettled.current === null) {
+      seenSettled.current = new Set(settled.map(keyOf));
+      return;
+    }
+    const fresh = settled.filter((r) => !seenSettled.current!.has(keyOf(r)));
+    for (const r of fresh) {
+      seenSettled.current.add(keyOf(r));
+      const o = JSON.parse(r.outcome) as WaitOutcome;
+      waitResolvers.current.get(String(r.id))?.(o);
+      waitResolvers.current.delete(String(r.id));
+      const text = settledLine(r, identity.userId);
+      if (!text || !r.widgetId) continue;
+      const slip = { id: `${r.id}:${o.state}`, widgetId: String(r.widgetId), text, color: members.find((m) => m.name === r.by)?.color ?? "var(--color-lime)" };
+      setRowSlips((x) => [...x, slip]);
+      window.setTimeout(() => setRowSlips((x) => x.filter((y) => y.id !== slip.id)), 5000);
+    }
+  }, [identity.userId, members, rowRoom?.settled]);
+  const adaptedTypesRef = useRef(new Map<string, string>());
+  adaptedTypesRef.current = new Map(widgets.map((w) => [w.id, w.type]));
+  /* Every other screen: "juno added ramen" on the card as an AI edit lands
+     (edits.recent; rows that were there when the room loaded are history). */
+  const recentEdits = useQuery(api.edits.recent, mode === "live" && space ? { spaceId: space._id } : "skip");
+  const seenEdits = useRef<Set<string> | null>(null);
+  const [editSlips, setEditSlips] = useState<{ id: string; widgetId: string; text: string; color: string }[]>([]);
+  useEffect(() => {
+    if (!recentEdits) return;
+    if (seenEdits.current === null) {
+      seenEdits.current = new Set(recentEdits.map((r) => String(r.id)));
+      return;
+    }
+    const fresh = recentEdits.filter((r) => !seenEdits.current!.has(String(r.id)));
+    if (!fresh.length) return;
+    for (const r of fresh) seenEdits.current.add(String(r.id));
+    const mine = fresh.filter((r) => r.byUserId !== identity.userId);
+    if (!mine.length) return;
+    const add = mine.map((r) => ({
+      id: String(r.id),
+      widgetId: String(r.widgetId),
+      text: r.kind === "undo" ? `${r.by.toLowerCase()} undid it` : `${r.by.toLowerCase()} ${r.text}`,
+      color: members.find((m) => m.name === r.by)?.color ?? "var(--color-lime)",
+    }));
+    setEditSlips((x) => [...x, ...add]);
+    window.setTimeout(() => setEditSlips((x) => x.filter((y) => !add.some((a) => a.id === y.id))), 4000);
+  }, [identity.userId, members, recentEdits]);
+  /* The room brief's facts (convex/roomBrief.ts): each call is routed by
+     them and its tokens resolve against them, on this screen. */
+  const [briefNow] = useState(() => Date.now());
+  const roomBrief = useQuery(api.roomBrief.inspect, mode === "live" && space ? { spaceId: space._id, now: briefNow } : "skip");
+  /* What this space knows (components/RoomKnows.tsx): the same brief as a
+     page people can read and correct. A correction lands on the brief's row,
+     so the facts above change with it and the next ask is routed by them. */
+  const roomKnows = useQuery(api.roomBrief.knows, mode === "live" && space ? { spaceId: space._id } : "skip");
+
+  /* ── a room someone just made (N1, components/NewRoom.tsx) ── */
+  const madeRoom = mode === "live" && !!space?.ownerId && !SPACES_BY_ID[slug];
+  // the banner's "make your own space" opens the maker from any room
+  useEffect(() => {
+    const open = () => setSpacePickerOpen(true);
+    window.addEventListener(MAKE_SPACE_EVENT, open);
+    return () => window.removeEventListener(MAKE_SPACE_EVENT, open);
+  }, []);
+  // a starter ask plays its words into the orb, as if they were said
+  const askStarter = useCallback((words: string) => {
+    setNextVoiceScript(words);
+    document.querySelector<HTMLElement>('[data-testid="dock-voice-orb"]')?.click();
+  }, []);
+  // two new people never walk in as the same persona: a guest still on a
+  // persona name takes the first one nobody in the room has
+  const roomNames = useMemo(() => (roomKnows?.people ?? []).map((p) => p.name.toLowerCase()), [roomKnows]);
+  useEffect(() => {
+    if (!gateOpen || account.joined || !isPersonaName(identity.name) || !roomNames.includes(identity.name.toLowerCase())) return;
+    const free = PERSONAS.find((p) => !roomNames.includes(p.name));
+    if (free) updateIdentity({ name: free.name, color: free.color, emoji: free.emoji, avatarUrl: free.avatarUrl });
+  }, [account.joined, gateOpen, identity.name, roomNames]);
+  // the first card's arrival, and the invite one tap away while it's only you
+  const cardCount = widgets.length;
+  const startedEmpty = useRef<boolean | null>(null);
+  if (startedEmpty.current === null && status !== "loading" && space) startedEmpty.current = cardCount === 0;
+  const [inviteClosed, setInviteClosed] = useState(() => sessionStorage.getItem(`ourspaces:invite-nudge:${slug}`) === "closed");
+  const aloneHere = (hereCount ?? 1) <= 1 && (roomKnows?.people.length ?? 1) <= 1;
+  // `?newroom=first` shows the first-card nudge as it lands (takes; features/new-space.md)
+  const nudgeTake = new URLSearchParams(window.location.search).get("newroom") === "first";
+  const showInviteNudge = madeRoom && roomEntered && !gateOpen && (nudgeTake || (cardCount > 0 && aloneHere && !inviteClosed));
+  // a phone opens a made room on its cards, wherever the first asker's screen put them
+  const framedSlug = useRef("");
+  useEffect(() => {
+    if (!madeRoom || !roomEntered || cardCount === 0 || framedSlug.current === slug) return;
+    framedSlug.current = slug;
+    const timer = window.setTimeout(() => {
+      const view = viewportRef.current?.getBoundingClientRect();
+      const cards = [...document.querySelectorAll<HTMLElement>("[data-widget-id]")];
+      const seen = cards.some((el) => {
+        const r = el.getBoundingClientRect();
+        return view && r.right > view.left + 40 && r.left < view.right - 40 && r.bottom > view.top + 40 && r.top < view.bottom - 120;
+      });
+      const first = cards[0]?.dataset.widgetId;
+      if (!seen && first) panToWidget(first);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [cardCount, madeRoom, roomEntered, slug]);
+  const correctKnows = useMutation(api.roomBrief.correct);
+  /* Cards waiting on another (a recipe's open links, convex/links.ts). */
+  const openLinks = useQuery(api.links.waiting, mode === "live" && space ? { spaceId: space._id } : "skip");
+  const waitingOn = useMemo(() => Object.fromEntries((openLinks ?? []).filter((l) => l.state === "waiting").map((l) => [String(l.to), String(l.from)])), [openLinks]);
+  // flows (W2): the threads, "call it" on a source, cut / lock / deal on the thread (convex/links.ts)
+  const callItM = useMutation(api.links.callIt);
+  const cutM = useMutation(api.links.cut);
+  const lockM = useMutation(api.links.lock);
+  const dealM = useMutation(api.links.deal);
+  const flows = useMemo(() => {
+    if (!space) return undefined;
+    const spaceId = space._id;
+    // asked (convex/links.ts): the second card waits on the people whose choice it would undo, not on the first card
+    const threads: ThreadLink[] = (openLinks ?? []).filter((l) => l.tag).map((l) => ({ id: String(l.id), from: String(l.from), to: String(l.to), tag: l.asking ? `${l.tag} · asked ${l.asking.join(", ")}` : l.tag!, state: l.state as ThreadLink["state"], when: l.when }));
+    return {
+      threads,
+      callIt: (widgetId: string) => {
+        playSound("tap");
+        void callItM({ spaceId, widgetId: widgetId as Id<"widgets">, by: identity.name });
+      },
+      cut: (id: string) => {
+        playSound("tap");
+        void cutM({ spaceId, linkId: id as Id<"links"> });
+      },
+      lock: (id: string) => void lockM({ spaceId, linkId: id as Id<"links"> }),
+      deal: (id: string) => {
+        playSound("tap");
+        void dealM({ spaceId, linkId: id as Id<"links"> });
+      },
+    };
+  }, [space, openLinks, callItM, cutM, lockM, dealM, identity.name]);
+  const voicePeople = () =>
+    [...new Set([identity.name, ...presence.peers.map((peer) => peer.name), ...members.map((m) => m.name)])].slice(0, 8);
+  const voiceToday = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  };
+  /* The card a voice ask means by "it": the focused or selected card, or the one whose toolbar is up
+     (a tap), or one picked in the last few seconds (tapping the orb can drop the toolbar).
+     `&select=<title words>` picks one on load (take recipes). */
+  const pickedRef = useRef<{ id: string; at: number } | null>(null);
+  useEffect(() => {
+    const id = (focusedTarget?.kind === "widget" ? focusedTarget.id : selectedWidgetId) || managedWidgetId;
+    if (id) pickedRef.current = { id, at: Date.now() };
+  }, [focusedTarget, managedWidgetId, selectedWidgetId]);
+  const selectParam = useRef(new URLSearchParams(window.location.search).get("select"));
+  useEffect(() => {
+    const want = selectParam.current?.toLowerCase();
+    if (!want || !adaptedWidgets.length) return;
+    const hit = adaptedWidgets.find((w) => titleOfWidget(w).toLowerCase().includes(want));
+    if (!hit) return;
+    selectParam.current = null;
+    setManagedWidgetId(hit.id);
+  }, [adaptedWidgets]);
+  const voiceSelectedId = () =>
+    (focusedTarget?.kind === "widget" ? focusedTarget.id : selectedWidgetId) ||
+    managedWidgetId ||
+    (pickedRef.current && Date.now() - pickedRef.current.at < 8000 ? pickedRef.current.id : null) ||
+    null;
+  // What the room can offer for a card named with nothing in it (the voice stage asks; lib/deck/suggest.ts).
+  setVoiceStageOffers((card) => offersFor(roomBrief?.room ?? null, card));
+  setVoiceStageFacts(() => roomBrief?.room ?? null);
+  // "already here": the stage shows the card that is there
+  setVoiceStageBoard((id) => adaptedWidgets.find((widget) => widget.id === id));
+  const voiceBuild = useVoiceBuild({
+    scrollerRef: viewportRef,
+    cardContext: () => ({
+      by: identity.name,
+      people: voicePeople(),
+      today: voiceToday(),
+      // the cast's own colours (a check-in paints its rows with them)
+      colors: Object.fromEntries((roomKnows?.people ?? []).filter((p) => p.color).map((p) => [p.name, p.color])),
+    }),
+    selectedId: voiceSelectedId,
+    held: () => heldByOthersRef.current,
+    // "i did 40": your own row on a running check-in, through the same as-yourself mutation as a tap
+    myPart: (said) => {
+      const mine = myPartFor(said, adaptedWidgets as never, identity.name);
+      if (!mine) return null;
+      handlers.onCheckIn(mine.widgetId, mine.day, mine.value);
+      return { item: { id: mine.widgetId, card: "checkin", title: mine.title, by: null }, text: `logged ${mine.value} for you · ${mine.title}` };
+    },
+    warm: () => void warmDeal({}).catch(() => {}),
+    /* The orb's other verbs (lib/deck/verbs.ts): answer from the room, catch me up,
+       do my part (as you, through the same writes a tap makes), go, games. */
+    verbs: {
+      widgets: () => turnPollsRef.current as never,
+      me: () => ({ name: identity.name, userId: identity.userId }),
+      people: () => roomBrief?.room?.people ?? members.map((m) => m.name),
+      rooms: () => SPACES.map((sp) => ({ slug: sp.id, name: sp.name, also: VOICE_ROOM_ALSO[sp.id] })),
+      here: () => slug,
+      frameOf: (w) => {
+        const frames = adaptedWidgets.filter((x) => x.type === "frame");
+        const me = adaptedWidgets.find((x) => x.id === w.id);
+        const frame = me ? frames.find((fr) => widgetIsInsideFrame(me, fr)) : undefined;
+        return frame ? String(frame.data.title ?? "").toLowerCase() : "";
+      },
+      recap: () => openRecapRef.current(),
+      goRoom: (to) => {
+        window.location.hash = normalSpaceHash(to);
+      },
+      goKnows: () => {
+        window.location.hash = knowsHash(slug);
+      },
+      act: (a) => {
+        if (a.kind === "rsvp") respondToRsvpRef.current(a.widgetId, a.status);
+        else if (a.kind === "vote") handlers.onVote(a.widgetId, a.optionId);
+        else handlers.onClaim(a.widgetId, a.item);
+      },
+      retrieve: async (said) => {
+        if (!space) throw new Error("no space");
+        return await answerAsk({ spaceId: space._id, question: said });
+      },
+      today: () => voiceToday(),
+      // "let's do Spina Farms pumpkin patch on Saturday": the plan card + who's in, then the web (convex/tavily.ts planPlace)
+      plan: handlers.planPlace,
+      game: (said) => {
+        const ask = gameAsk(said);
+        const jig = jigsawRef.current;
+        if (ask.kind === "jigsaw" && jig) {
+          const photos = ROOM_JIGSAW[slug]?.photos ?? [];
+          const photo = photos.find((p) => ask.photo && p.caption.includes(ask.photo.split(" ")[0])) ?? photos[0];
+          const already = jig.run?.phase === "on";
+          jig.start(photo?.key);
+          return already ? `a puzzle of ${jig.run?.photo.caption ?? "the photo"} is already on. jump in` : `a puzzle of ${photo?.caption ?? "the photo"}. everyone here gets the invite`;
+        }
+        return gamesRef.current?.voice?.(said) ?? "no games in this room";
+      },
+      edit: async (widgetId, op) => {
+        if (!space) throw new Error("no space");
+        // ?asklife=<seconds>: a test's short life for a vote this edit may open (default a day)
+        const life = Number(new URLSearchParams(window.location.search).get("asklife")) * 1000 || undefined;
+        return await applyVoiceEdit({ spaceId: space._id, widgetId: widgetId as Id<"widgets">, op, by: identity.name, byUserId: identity.userId, today: voiceToday(), ...(life ? { life } : {}) });
+      },
+      undo: async (writeId) => {
+        if (!space) throw new Error("no space");
+        return await undoVoiceEdit({ spaceId: space._id, writeId: writeId as Id<"aiWrites">, byUserId: identity.userId, today: voiceToday() });
+      },
+      settled: (writeId) => new Promise<WaitOutcome>((resolve) => waitResolvers.current.set(writeId, resolve)),
+    },
+    facts: () => roomBrief?.room ?? null,
+    decide: (said, { onBoard, card, verb }) =>
+      !space ? Promise.reject(new Error("no space")) : decideCard({
+        spaceId: space._id,
+        said,
+        card,
+        ...(verb ? { verb: true } : {}),
+        room: space.name,
+        today: voiceToday(),
+        people: voicePeople(),
+        board: (roomBrief?.room?.board ?? []).map((b) => b.title),
+        ...(onBoard ? { onBoard: true, match: onBoard } : {}),
+      }),
+    /* The board as drawn, for the "already here" check; who made each card
+       when the row says (a seeded cast member, or you). */
+    board: () => {
+      const makers = new Map((boardRows?.widgets ?? []).map((row) => [String(row._id), row.createdBy]));
+      const cast = roomBrief?.room?.people ?? [];
+      return boardItems(adaptedWidgets, (id) => {
+        const by = makers.get(id);
+        if (!by) return null;
+        if (by === identity.userId) return "you";
+        const seeded = /^seed:[^:]+:(.+)$/.exec(by)?.[1];
+        return seeded ? (cast.find((n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-") === seeded) ?? null) : null;
+      });
+    },
+    deal: async (call, onPartial) => {
+      if (!space) throw new Error("no space");
+      const selId = voiceSelectedId();
+      const sel = selId ? adaptedWidgets.find((w) => w.id === selId) : undefined;
+      const selData = (sel?.data ?? {}) as { title?: unknown; question?: unknown; event?: unknown };
+      const selName = [selData.title, selData.question, selData.event].find((t) => typeof t === "string") as string | undefined;
+      // The answer as it streams (mirrored into the ask's deals row).
+      const watch = convex.watchQuery(api.voiceBuild.live, { spaceId: space._id, nonce: call.nonce });
+      const stop = watch.onUpdate(() => {
+        const live = watch.localQueryResult();
+        if (live?.answer) onPartial(live.answer, live.done);
+      });
+      try {
+        const r = await dealCards({
+          spaceId: space._id,
+          said: call.said,
+          nonce: call.nonce,
+          spec: call.spec,
+          ...(call.route ? { route: call.route } : {}),
+          ...(call.menu ? { menu: call.menu } : {}),
+          ...(call.card ? { card: call.card } : {}),
+          ...(call.deck ? { deck: call.deck, focus: call.focus } : {}),
+          room: space.name,
+          today: voiceToday(),
+          people: voicePeople(),
+          ...(sel ? { selected: selName ? `${sel.type} "${selName.slice(0, 60)}"` : sel.type } : {}),
+        });
+        return {
+          dealId: r.dealId,
+          model: r.model,
+          context: r.context,
+          answer: r.answer,
+          error: r.error,
+          modelMs: { firstLine: r.firstLineMs, total: r.totalMs },
+          route: r.route,
+          usage: r.usage,
+        };
+      } finally {
+        stop();
+      }
+    },
+    commit: async ({ dealId, nonce, cards }) => {
+      if (!space) return [];
+      const ids = await commitCards({
+        spaceId: space._id,
+        ...(dealId ? { dealId: dealId as Id<"deals"> } : {}),
+        nonce,
+        by: identity.name,
+        people: voicePeople(),
+        today: voiceToday(),
+        createdBy: identity.userId,
+        cards: cards.map((c) => ({
+          card: JSON.stringify(c.card),
+          x: c.widget.x,
+          y: c.widget.y,
+          z: c.widget.z,
+          ...(c.people ? { people: c.people } : {}),
+          ...(c.assignees ? { assignees: c.assignees } : {}),
+          ...(c.link ? { link: c.link } : {}),
+          ...(c.blank ? { blank: c.blank, ...(c.unfinished ? { unfinished: true } : {}) } : {}),
+          ...(c.part ? { w: c.widget.w, h: c.widget.h, ...(c.widget.rotate !== undefined ? { rotate: c.widget.rotate } : {}) } : {}),
+        })),
+      });
+      return ids.map(String);
+    },
+    amend: async ({ widgetId, nonce, card }) => {
+      if (!space) return false;
+      return await amendCard({
+        spaceId: space._id,
+        widgetId: widgetId as Id<"widgets">,
+        nonce,
+        by: identity.name,
+        people: voicePeople(),
+        today: voiceToday(),
+        createdBy: identity.userId,
+        card: JSON.stringify(card.card),
+        ...(card.people ? { cardPeople: card.people } : {}),
+        ...(card.assignees ? { assignees: card.assignees } : {}),
+      });
+    },
+    onLanded: (dealId, ms, trace) =>
+      void noteDealLanded({ dealId: dealId as Id<"deals">, landedMs: ms, trace: JSON.stringify({
+          stages: trace.stages,
+          calls: trace.calls.length,
+          guess: trace.guesses.at(-1)?.card ?? null,
+          guessAgreed: trace.guessAgreed,
+          route: trace.route ? { route: trace.route.route, why: trace.route.why } : null,
+          decides: trace.decides.map((d) => ({ ms: d.ms, back: d.back, card: d.card, conf: d.conf })),
+          skeletons: trace.skeletons,
+          overrode: trace.overrode,
+          notes: trace.notes,
+        }) }).catch(() => {}),
+  });
+  // a voice ask tucks catch me up (and its tickets) away: the card it builds lands where the panel was
+  const voiceHooks = useMemo(
+    () => ({ ...voiceBuild.voice, start: () => { setRecapOpen(false); voiceBuild.voice.start?.(); } }),
+    [voiceBuild.voice],
+  );
+  const canvasWidgets = useMemo(() => voiceBuild.withDrafts(withGhosts([...adaptedWidgets, ...gameWidgets], ghosts, leases, identity.userId)), [voiceBuild.withDrafts, adaptedWidgets, gameWidgets, ghosts, leases, identity.userId]);
+  /* The header always needs a number to print, so an unloaded count reads as
+     quiet rather than falling through to the seeded roster. The strip can
+     stay silent until the real one lands, so it gets the raw value. */
+  const labCount = labPeers?.rows.length ?? 0;
+  const headerHereCount = mode === "live" ? (hereCount ?? 0) + labCount : hereCount;
+  /* The build room composition is wider than the 1640×1080 the row was seeded
+     with; the canvas grows to hold it whatever the row says. */
+  const canvasWidth = Math.max(
+    space?.canvasW ?? snapshot?.canvasW ?? 1640,
+    slug === "buildroom" ? BUILD_ROOM_CANVAS.width : 0,
+  );
+  const canvasHeight = Math.max(
+    space?.canvasH ?? snapshot?.canvasH ?? 1080,
+    slug === "buildroom" ? BUILD_ROOM_CANVAS.height : 0,
+  );
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const updateMoreRight = () => {
+      setMoreRight(
+        viewport.scrollLeft + viewport.clientWidth < viewport.scrollWidth - 2,
+      );
+    };
+
+    updateMoreRight();
+    viewport.addEventListener("scroll", updateMoreRight, { passive: true });
+    window.addEventListener("resize", updateMoreRight);
+    const resizeObserver = new ResizeObserver(updateMoreRight);
+    resizeObserver.observe(viewport);
+    if (canvasStageRef.current) resizeObserver.observe(canvasStageRef.current);
+
+    return () => {
+      viewport.removeEventListener("scroll", updateMoreRight);
+      window.removeEventListener("resize", updateMoreRight);
+      resizeObserver.disconnect();
+    };
+  }, [canvasWidth, roomEntered, slug]);
+  const editingWidget = editingWidgetId
+    ? widgets.find((widget) => widget.id === editingWidgetId) ?? null
+    : null;
+  const activeThreadId =
+    focusedTarget?.kind === "widget" ? focusedTarget.id : selectedWidgetId;
+  const activeThreadWidget = adaptedWidgets.find((widget) => widget.id === activeThreadId) ?? null;
+  /* A zoomed web post talks through its conversation starters — each one is
+     its own thread under a namespaced id; other widgets keep the plain one. */
+  const activeThreadQuestions = activeThreadWidget
+    ? linkCardQuestions(activeThreadWidget)
+    : [];
+  const activeQuestion =
+    activeThreadQuestions.find((question) => question.id === activeQuestionId) ??
+    activeThreadQuestions[0] ??
+    null;
+  const activeThreadKey =
+    activeThreadWidget && activeQuestion
+      ? questionThreadId(activeThreadWidget.id, activeQuestion.id)
+      : activeThreadId;
+  const activeThreadMessages = (allMessages ?? [])
+    .filter((message) => message.widgetId === activeThreadKey)
+    .map(toChatMessage);
+  const activeQuestionCounts = Object.fromEntries(
+    activeThreadWidget
+      ? activeThreadQuestions.map((question) => [
+          question.id,
+          (allMessages ?? []).filter(
+            (message) =>
+              message.widgetId ===
+              questionThreadId(activeThreadWidget.id, question.id),
+          ).length,
+        ])
+      : [],
+  );
+  useEffect(() => {
+    setActiveQuestionId("");
+  }, [activeThreadId]);
+  const focusedFrame = (focusedTarget?.kind === "frame"
+    ? adaptedWidgets.find((widget) => widget.id === focusedTarget.id && widget.type === "frame") ?? null
+    : null) as Widget | null;
+
+  const applyCanvasScale = useCallback((
+    scale: number,
+    reservedScale = scale,
+    reserveSpace = true,
+  ) => {
+    const stage = canvasStageRef.current;
+    const layer = canvasScaleLayerRef.current;
+    canvasScaleRef.current = scale;
+    if (stage && reserveSpace) {
+      stage.style.width = `${Math.ceil(canvasWidth * reservedScale)}px`;
+      stage.style.height = `${Math.ceil(canvasHeight * reservedScale)}px`;
+    }
+    if (layer) {
+      if (reserveSpace) {
+        layer.style.width = `${canvasWidth}px`;
+        layer.style.height = `${canvasHeight}px`;
+      }
+      layer.style.transform = `scale(${scale})`;
+    }
+  }, [canvasHeight, canvasWidth]);
+
+  const moveCanvasCamera = useCallback((target: CanvasCamera, duration: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    window.cancelAnimationFrame(canvasCameraAnimation.current);
+    canvasCameraAnimation.current = 0;
+    canvasScaleLayerRef.current?.style.removeProperty("will-change");
+
+    const fromScale = canvasScaleRef.current;
+    const fromScrollLeft = viewport.scrollLeft;
+    const fromScrollTop = viewport.scrollTop;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const animationDuration = reducedMotion ? 0 : duration;
+    setCanvasScale(fromScale);
+
+    if (animationDuration === 0) {
+      applyCanvasScale(target.scale);
+      viewport.scrollTo({ left: target.scrollLeft, top: target.scrollTop, behavior: "auto" });
+      setCanvasScale(target.scale);
+      setCanvasCameraAnimating(false);
+      return;
+    }
+
+    const reservedScale = Math.max(fromScale, target.scale);
+    const startedAt = performance.now();
+    applyCanvasScale(fromScale, reservedScale);
+    canvasScaleLayerRef.current?.style.setProperty("will-change", "transform");
+    setCanvasCameraAnimating(true);
+
+    const tick = (time: number) => {
+      const progress = clamp((time - startedAt) / animationDuration, 0, 1);
+      const eased = easeOutQuint(progress);
+      const scale = fromScale + (target.scale - fromScale) * eased;
+      applyCanvasScale(scale, reservedScale, false);
+      viewport.scrollLeft = fromScrollLeft + (target.scrollLeft - fromScrollLeft) * eased;
+      viewport.scrollTop = fromScrollTop + (target.scrollTop - fromScrollTop) * eased;
+
+      if (progress < 1) {
+        canvasCameraAnimation.current = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      canvasCameraAnimation.current = 0;
+      applyCanvasScale(target.scale);
+      viewport.scrollTo({ left: target.scrollLeft, top: target.scrollTop, behavior: "auto" });
+      setCanvasScale(target.scale);
+      setCanvasCameraAnimating(false);
+      canvasScaleLayerRef.current?.style.removeProperty("will-change");
+    };
+
+    canvasCameraAnimation.current = window.requestAnimationFrame(tick);
+  }, [applyCanvasScale]);
+
+  const focusCameraTarget = useCallback((
+    target: FocusedTarget,
+    dockSize: ThreadDockSize = DEFAULT_THREAD_DOCK_SIZE,
+  ): FocusLayout | null => {
+    const viewport = viewportRef.current;
+    if (!viewport) return null;
+
+    const targetElements = canvasScaleLayerRef.current?.querySelectorAll<HTMLElement>(
+      target.kind === "frame"
+        ? ".widget-group[data-frame-id]"
+        : ".widget-group[data-widget-id]",
+    );
+    const targetElement = Array.from(targetElements ?? []).find((element) =>
+      target.kind === "frame"
+        ? element.dataset.frameId === target.id
+        : element.dataset.widgetId === target.id,
+    );
+    if (!targetElement) return null;
+
+    const bounds = {
+      x: targetElement.offsetLeft,
+      y: targetElement.offsetTop,
+      width: targetElement.offsetWidth,
+      height: targetElement.offsetHeight,
+    };
+    const viewportRect = viewport.getBoundingClientRect();
+    let visibleLeft = 24;
+    let visibleTop = 72;
+    let visibleRight = viewport.clientWidth - 24;
+    const visibleBottom = viewport.clientHeight - 24;
+
+    const rail = document.querySelector<HTMLElement>(".space-rail");
+    if (rail && elementIsVisible(rail)) {
+      const railRect = rail.getBoundingClientRect();
+      visibleLeft = Math.max(
+        visibleLeft,
+        railRect.right - viewportRect.left + 16,
+      );
+    }
+
+    const focusHud = document.querySelector<HTMLElement>(".canvas-focus-hud");
+    if (focusHud && elementIsVisible(focusHud)) {
+      const focusRect = focusHud.getBoundingClientRect();
+      visibleTop = Math.max(
+        visibleTop,
+        focusRect.bottom - viewportRect.top + 12,
+      );
+    }
+
+    document
+      .querySelectorAll<HTMLElement>(".global-chat-panel, .widget-editor-panel")
+      .forEach((panel) => {
+        if (!elementIsVisible(panel)) return;
+        const panelRect = panel.getBoundingClientRect();
+        visibleRight = Math.min(
+          visibleRight,
+          panelRect.left - viewportRect.left - 16,
+        );
+      });
+
+    const visibleWidth = Math.max(260, visibleRight - visibleLeft);
+    const visibleHeight = Math.max(260, visibleBottom - visibleTop);
+    const viewCenterX = visibleLeft + visibleWidth / 2;
+    const viewCenterY = visibleTop + visibleHeight / 2;
+    let scale: number;
+    let desiredTargetCenterX = viewCenterX;
+    let desiredTargetCenterY = viewCenterY;
+    let dockPlacement: ThreadDockPlacement | undefined;
+
+    if (target.kind === "frame") {
+      const fitScale = Math.min(
+        visibleWidth / (bounds.width + FRAME_FIT_GUTTER * 2),
+        visibleHeight / (bounds.height + FRAME_FIT_GUTTER * 2),
+      );
+      scale = clamp(
+        fitScale,
+        editingWidgetId === target.id
+          ? MIN_EDIT_FRAME_SCALE
+          : MIN_FRAME_SCALE,
+        MAX_FRAME_SCALE,
+      );
+    } else {
+      const availableWidth = Math.max(
+        1,
+        visibleWidth - WIDGET_FOCUS_GUTTER * 2,
+      );
+      const availableHeight = Math.max(
+        1,
+        visibleHeight - WIDGET_FOCUS_GUTTER * 2,
+      );
+      const belowScale = Math.min(
+        MAX_WIDGET_SCALE,
+        availableWidth / bounds.width,
+        (availableHeight - THREAD_DOCK_GAP - dockSize.height) / bounds.height,
+      );
+      const sideScale = Math.min(
+        MAX_WIDGET_SCALE,
+        (availableWidth - THREAD_DOCK_GAP - dockSize.width) / bounds.width,
+        availableHeight / bounds.height,
+      );
+
+      if (sideScale >= MIN_WIDGET_SCALE && dockSize.height <= availableHeight) {
+        scale = clamp(sideScale, MIN_WIDGET_SCALE, MAX_WIDGET_SCALE);
+        if (bounds.x + bounds.width / 2 > canvasWidth / 2) {
+          dockPlacement = "left";
+          desiredTargetCenterX =
+            viewCenterX + (THREAD_DOCK_GAP + dockSize.width) / 2;
+        } else {
+          dockPlacement = "right";
+          desiredTargetCenterX =
+            viewCenterX - (THREAD_DOCK_GAP + dockSize.width) / 2;
+        }
+      } else {
+        dockPlacement = "below";
+        scale = clamp(belowScale, MIN_WIDGET_SCALE, MAX_WIDGET_SCALE);
+        desiredTargetCenterY =
+          viewCenterY - (THREAD_DOCK_GAP + dockSize.height) / 2;
+      }
+    }
+
+    const viewportStyles = window.getComputedStyle(viewport);
+    const stageStyles = canvasStageRef.current
+      ? window.getComputedStyle(canvasStageRef.current)
+      : null;
+    const paddingLeft =
+      cssPixels(viewportStyles.paddingLeft) +
+      (stageStyles ? cssPixels(stageStyles.marginLeft) : 0);
+    const paddingRight = cssPixels(viewportStyles.paddingRight);
+    const paddingTop =
+      cssPixels(viewportStyles.paddingTop) +
+      (stageStyles ? cssPixels(stageStyles.marginTop) : 0);
+    const paddingBottom = cssPixels(viewportStyles.paddingBottom);
+    const maxScrollLeft = Math.max(
+      0,
+      paddingLeft + canvasWidth * scale + paddingRight - viewport.clientWidth,
+    );
+    const maxScrollTop = Math.max(
+      0,
+      paddingTop + canvasHeight * scale + paddingBottom - viewport.clientHeight,
+    );
+
+    return {
+      dockPlacement,
+      camera: {
+        scale,
+        scrollLeft: clamp(
+          paddingLeft +
+            (bounds.x + bounds.width / 2) * scale -
+            desiredTargetCenterX,
+          0,
+          maxScrollLeft,
+        ),
+        scrollTop: clamp(
+          paddingTop +
+            (bounds.y + bounds.height / 2) * scale -
+            desiredTargetCenterY,
+          0,
+          maxScrollTop,
+        ),
+      },
+    };
+  }, [canvasHeight, canvasWidth, editingWidgetId]);
+
+  const refitFocusedTarget = useCallback((duration = CAMERA_MS) => {
+    if (!focusedTarget) return;
+    const layout = focusCameraTarget(focusedTarget, threadDockSize);
+    if (!layout) return;
+    if (layout.dockPlacement) setThreadDockPlacement(layout.dockPlacement);
+    moveCanvasCamera(layout.camera, duration);
+  }, [focusCameraTarget, focusedTarget, moveCanvasCamera, threadDockSize]);
+
+  const leaveFocus = useCallback((withSound = true) => {
+    if (!focusedTarget) return;
+    const returnView = canvasReturnView.current;
+    if (withSound) playSound("tap");
+    setEditingWidgetId("");
+    setManagedWidgetId("");
+    setSelectedWidgetId("");
+    setFocusedTarget(null);
+    canvasReturnView.current = null;
+    const previousChatOpen = chatReturnView.current;
+    chatReturnView.current = null;
+    if (previousChatOpen !== null) setChatOpen(previousChatOpen);
+    if (returnView) moveCanvasCamera(returnView, CAMERA_EXIT_MS);
+  }, [focusedTarget, moveCanvasCamera]);
+
+  const focusFrame = useCallback((targetFrame: Widget) => {
+    if (window.matchMedia("(max-width: 800px)").matches) return;
+    /* The pile's frame has nothing to zoom into — the links live in the
+       reading room, so opening the frame opens the room. */
+    if (pileInsideFrame(targetFrame, adaptedWidgets)) {
+      openReadingRoom();
+      return;
+    }
+    if (focusedTarget?.kind === "frame" && focusedTarget.id === targetFrame.id) {
+      leaveFocus();
+      return;
+    }
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    if (!canvasReturnView.current) {
+      canvasReturnView.current = {
+        scale: canvasScaleRef.current,
+        scrollLeft: viewport.scrollLeft,
+        scrollTop: viewport.scrollTop,
+      };
+    }
+    playSound("tap");
+    setManagedWidgetId("");
+    setSelectedWidgetId("");
+    setPickerOpen(false);
+    setChatOpen(false);
+    setRecapOpen(false);
+    setFocusedTarget({
+      kind: "frame",
+      id: targetFrame.id,
+      type: "frame",
+      label: String(targetFrame.data.title ?? "frame"),
+    });
+  }, [adaptedWidgets, focusedTarget, leaveFocus, openReadingRoom]);
+
+  const focusWidgetThread = useCallback((widget: Widget) => {
+    if (!widgetSupportsThread(widget)) return;
+
+    if (widget.type === "photoWall") {
+      if (focusedTarget) leaveFocus(false);
+      const widgetElement = Array.from(
+        document.querySelectorAll<HTMLElement>(".widget-group[data-widget-id]"),
+      ).find((element) => element.dataset.widgetId === widget.id);
+      const rect = widgetElement?.getBoundingClientRect();
+      const origin = rect
+        ? {
+            top: Math.max(0, rect.top),
+            right: Math.max(0, window.innerWidth - rect.right),
+            bottom: Math.max(0, window.innerHeight - rect.bottom),
+            left: Math.max(0, rect.left),
+          }
+        : {
+            top: window.innerHeight * 0.25,
+            right: window.innerWidth * 0.25,
+            bottom: window.innerHeight * 0.25,
+            left: window.innerWidth * 0.25,
+          };
+      const printOrigins = widgetElement
+        ? [".photo-wall-cover", ".photo-wall-peek-1", ".photo-wall-peek-2"].map(
+            (selector) => {
+              const print = widgetElement.querySelector(selector);
+              if (!print) return null;
+              const printRect = print.getBoundingClientRect();
+              return {
+                x: printRect.x,
+                y: printRect.y,
+                w: printRect.width,
+                h: printRect.height,
+              };
+            },
+          )
+        : undefined;
+      playSound("tap");
+      /* No managed toolbar behind the modal — it was invisible work at open
+         and a stray toolbar if the close path ever missed clearing it. */
+      setManagedWidgetId("");
+      setEditingWidgetId("");
+      setSelectedWidgetId("");
+      setPickerOpen(false);
+      setRecapOpen(false);
+      setChatOpen(false);
+      setPhotoGallery({ widgetId: widget.id, origin, printOrigins });
+      return;
+    }
+
+    if (widget.type === "shipPost") {
+      if (focusedTarget) leaveFocus(false);
+      playSound("tap");
+      setManagedWidgetId("");
+      setEditingWidgetId("");
+      setSelectedWidgetId("");
+      setPickerOpen(false);
+      setRecapOpen(false);
+      setChatOpen(false);
+      setOpenRoom({ kind: "ship", widgetId: widget.id, origin: roomOriginFor(widget.id) });
+      return;
+    }
+
+    if (window.matchMedia("(max-width: 800px)").matches) {
+      playSound("tap");
+      setManagedWidgetId("");
+      setEditingWidgetId("");
+      setSelectedWidgetId(widget.id);
+      return;
+    }
+
+    if (focusedTarget?.kind === "widget" && focusedTarget.id === widget.id) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    if (!canvasReturnView.current) {
+      canvasReturnView.current = {
+        scale: canvasScaleRef.current,
+        scrollLeft: viewport.scrollLeft,
+        scrollTop: viewport.scrollTop,
+      };
+    }
+    if (chatReturnView.current === null) chatReturnView.current = chatOpen;
+
+    playSound("tap");
+    setManagedWidgetId("");
+    setEditingWidgetId("");
+    setPickerOpen(false);
+    setRecapOpen(false);
+    setChatOpen(false);
+    setSelectedWidgetId(widget.id);
+    setThreadDockPlacement("below");
+    setFocusedTarget({
+      kind: "widget",
+      id: widget.id,
+      type: widget.type,
+      label: widgetLabel(widget),
+    });
+  }, [chatOpen, focusedTarget, leaveFocus]);
+
+  const updateThreadDockSize = useCallback((size: ThreadDockSize) => {
+    setThreadDockSize((current) =>
+      Math.abs(current.width - size.width) < 1 &&
+      Math.abs(current.height - size.height) < 1
+        ? current
+        : size,
+    );
+  }, []);
+
+  useEffect(() => () => {
+    window.cancelAnimationFrame(canvasCameraAnimation.current);
+    canvasScaleLayerRef.current?.style.removeProperty("will-change");
+  }, []);
+
+  useLayoutEffect(() => {
+    window.cancelAnimationFrame(canvasCameraAnimation.current);
+    canvasScaleLayerRef.current?.style.removeProperty("will-change");
+    setEditingWidgetId("");
+    setSelectedWidgetId("");
+    setManagedWidgetId("");
+    setFocusedTarget(null);
+    setThreadDockPlacement("below");
+    canvasReturnView.current = null;
+    chatReturnView.current = null;
+
+    const viewport = viewportRef.current;
+    const scale = viewport
+      ? buildRoomOverviewScale(slug, viewport, overviewWidgetsRef.current)
+      : 1;
+    applyCanvasScale(scale);
+    setCanvasScale(scale);
+    viewport?.scrollTo({ left: 0, top: 0, behavior: "auto" });
+  }, [applyCanvasScale, slug]);
+
+  useEffect(() => {
+    if (slug !== "buildroom" || focusedTarget) return;
+    let frame = 0;
+    const refitOverview = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        const scale = buildRoomOverviewScale(
+          slug,
+          viewport,
+          overviewWidgetsRef.current,
+        );
+        applyCanvasScale(scale);
+        setCanvasScale(scale);
+        viewport.scrollTo({ left: 0, top: 0, behavior: "auto" });
+      });
+    };
+    window.addEventListener("resize", refitOverview);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", refitOverview);
+    };
+  }, [applyCanvasScale, focusedTarget, slug]);
+
+  useEffect(() => {
+    if (!focusedTarget) return;
+    const frame = window.requestAnimationFrame(() => refitFocusedTarget());
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedTarget, refitFocusedTarget]);
+
+  useEffect(() => {
+    if (!focusedTarget) return;
+    let frame = 0;
+    const refit = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        refitFocusedTarget(CAMERA_EXIT_MS);
+      });
+    };
+    window.addEventListener("resize", refit);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", refit);
+    };
+  }, [focusedTarget, refitFocusedTarget]);
+
+  useEffect(() => {
+    if (!focusedTarget) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || editingWidgetId || pickerOpen) return;
+      event.preventDefault();
+      leaveFocus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [editingWidgetId, focusedTarget, leaveFocus, pickerOpen]);
+
+  openRecapRef.current = () => openRecap();
+  const openRecap = () => {
+    setRecapCites([]);
+    setRecapHover(null);
+    setRecapRunId((id) => id + 1);
+    setRecapOpen(true);
+  };
+  const closeRecap = () => {
+    setRecapOpen(false);
+    setRecapCites([]);
+    setRecapHover(null);
+  };
+  useEffect(() => {
+    recapGenerating.current = false;
+  }, [space?._id]);
+  useEffect(() => {
+    if (latestRecap?._id) setRecapRunId((id) => id + 1);
+  }, [latestRecap?._id]);
+  const refreshRecap = () => {
+    if (!space || recapBusy) return;
+    recapGenerating.current = true;
+    setRecapBusy(true);
+    setRecapCites([]);
+    void generateRecap({ spaceId: space._id, kind: "ask" })
+      .catch(() => {})
+      .finally(() => {
+        recapGenerating.current = false;
+        setRecapBusy(false);
+      });
+  };
+  // Opening on a board with no briefing makes one — the empty state was a
+  // dead instruction ("tap ↻") and the first thing a newcomer read.
+  useEffect(() => {
+    if (!recapOpen || latestRecap !== null || recapBusy || recapGenerating.current) return;
+    refreshRecap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recapOpen, latestRecap]);
+  // While it reads, the ring hops card to card — the reporter's eyes.
+  useEffect(() => {
+    if (!recapOpen || !recapBusy) return;
+    return startBoardScan(
+      adaptedWidgets.filter((widget) => widget.type !== "frame" && widget.type !== "sticker"),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recapOpen, recapBusy]);
+  const revealRecap = (count: number) => {
+    const widgetId = recapLines[count - 1]?.widgetId;
+    if (!widgetId) return;
+    setRecapCites((current) => [...current, widgetId]);
+    playSound("place");
+    if (count === 1) requestAnimationFrame(() => panToWidget(widgetId));
+  };
+  const jumpToRecapWidget = (widgetId: string) => {
+    playSound("tap");
+    setRecapCites([widgetId]);
+    panToWidget(widgetId);
+  };
+  const jumpToRecapMessage = (messageId: string) => {
+    playSound("tap");
+    closeRecap();
+    setChatOpen(true);
+    setHighlightMessageId(messageId);
+    window.setTimeout(() => setHighlightMessageId(""), 2600);
+  };
+  /** The non-streaming path (convex/recap.ts `ask`): one action, one finished
+      answer, and it cites the widget it read. Still the fallback for when the
+      stream can't be minted (rate limit) or dies mid-answer. */
+  const askWithoutStreaming = (spaceId: Id<"spaces">, question: string) => {
+    setRecapAsking(true);
+    void askRecap({ spaceId, question })
+      .then((result) => {
+        if (result.widgetId) {
+          setRecapCites((current) => [...current, result.widgetId!]);
+          requestAnimationFrame(() => panToWidget(result.widgetId!));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRecapAsking(false));
+  };
+
+  const onRecapAsk = (text: string) => {
+    handlers.onSend(RECAP_THREAD_ID, text);
+    if (!space) return;
+    const spaceId = space._id;
+    setRecapAsking(true);
+    // Mint the stream, then let useStream POST the question's id to
+    // /api/ask-stream and type the answer into the turn this just created.
+    void createAskStream({ spaceId, question: text })
+      .then((streamId) => {
+        setDrivenStreamId(streamId);
+        setRecapAsking(false);
+      })
+      .catch(() => {
+        setRecapAsking(false);
+        askWithoutStreaming(spaceId, text);
+      });
+  };
+
+  // Only the tab that drove the stream retries — a second viewer watching the
+  // same dead turn would otherwise ask the same question all over again.
+  const retryAsk = askFailed && askStream?.streamId === drivenStreamId ? askStream : null;
+  useEffect(() => {
+    if (!retryAsk || !space) return;
+    askWithoutStreaming(space._id, retryAsk.question);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryAsk?.streamId]);
+
+  const selectSpace = (id: string) => {
+    if (focusedTarget) leaveFocus(false);
+    playSound("tap");
+    onSelectSpace?.(id);
+  };
+
+  const openSpacePicker = () => {
+    if (focusedTarget) leaveFocus(false);
+    playSound("tap");
+    setSpacePickerOpen(true);
+  };
+
+  const openWidgetPicker = () => {
+    if (focusedTarget) leaveFocus(false);
+    playSound("tap");
+    setPlacing(null);
+    setManagedWidgetId("");
+    setEditingWidgetId("");
+    setSpaceDraft(null);
+    setChatOpen(false);
+    setPickerOpen(true);
+  };
+
+  const openWidgetEditor = useCallback((widgetId: string) => {
+    if (focusedTarget?.kind === "widget") leaveFocus(false);
+    playSound("tap");
+    setManagedWidgetId(widgetId);
+    setEditingWidgetId(widgetId);
+    setSpaceDraft(null);
+    setPickerOpen(false);
+    setChatOpen(false);
+    setRecapOpen(false);
+  }, [focusedTarget?.kind, leaveFocus]);
+
+  const openSpaceEditor = () => {
+    playSound("tap");
+    setSpaceDraft({ ...customization });
+    setManagedWidgetId("");
+    setEditingWidgetId("");
+    setPickerOpen(false);
+    setChatOpen(false);
+    setRecapOpen(false);
+  };
+
+  const saveSpace = (nextCustomization: SpaceCustomization) => {
+    playSound("place");
+    setCustomization(nextCustomization);
+    setSpaceDraft(null);
+  };
+
+  /* The three writes. Same route as patchPile: merge into the widget's own
+     `data` and hand it to `handlers.onUpdate`, which no-ops (and stays quiet)
+     when there is no live space, so mock mode is unaffected. */
+  const respondToRsvp = useCallback(
+    (widgetId: string, status: RsvpStatus) => {
+      const widget = rawWidgetsRef.current.find((item) => item.id === widgetId);
+      if (!widget) return;
+      const responses = rsvpResponsesOf(widget);
+      const mine = responses.find((row) => row.userId === identity.userId);
+      if (mine?.status === status) return;
+      const row: LiveRsvpResponse = {
+        name: identity.name,
+        status,
+        userId: identity.userId,
+      };
+      handlers.onUpdate(widgetId, {
+        ...widget.data,
+        responses: mine
+          ? responses.map((existing) => (existing === mine ? row : existing))
+          : [...responses, row],
+      });
+    },
+    [handlers, identity.name, identity.userId],
+  );
+
+  respondToRsvpRef.current = respondToRsvp;
+
+  const answerDailyQuestion = useCallback(
+    (widgetId: string, text: string) => {
+      const widget = rawWidgetsRef.current.find((item) => item.id === widgetId);
+      if (!widget) return;
+      // Hand the card the text for the length of its reveal, then let it read
+      // the answer off the board like every other one.
+      setRevealingAnswers((current) => ({ ...current, [widgetId]: text }));
+      window.clearTimeout(revealTimers.current[widgetId]);
+      revealTimers.current[widgetId] = window.setTimeout(() => {
+        delete revealTimers.current[widgetId];
+        setRevealingAnswers(({ [widgetId]: _done, ...rest }) => rest);
+      }, DAILY_REVEAL_MS);
+      const answers = dailyAnswersOf(widget);
+      const mine = answers.find((answer) => answer.userId === identity.userId);
+      // Spread `mine` first so reactions other people left on your answer
+      // survive an edit. `youAnswered` stays untouched — it is one shared
+      // boolean, and flipping it would unlock the card for everybody.
+      const row: LiveDailyAnswer = {
+        ...mine,
+        name: identity.name,
+        text,
+        userId: identity.userId,
+      };
+      handlers.onUpdate(widgetId, {
+        ...widget.data,
+        answers: convexSafeKeys(
+          mine
+            ? answers.map((answer) => (answer === mine ? row : answer))
+            : [...answers, row],
+        ),
+      });
+    },
+    [handlers, identity.name, identity.userId],
+  );
+
+  const reactToDailyAnswer = useCallback(
+    (widgetId: string, answerName: string, emoji: string) => {
+      const widget = rawWidgetsRef.current.find((item) => item.id === widgetId);
+      if (!widget) return;
+      // The card only offers the tray on other people's bubbles, so the name
+      // it hands back is the stored one, never "You".
+      let matched = false;
+      const answers = dailyAnswersOf(widget).map((answer) => {
+        if (matched || answer.name !== answerName) return answer;
+        matched = true;
+        const reactedBy = { ...answer.reactedBy };
+        if (reactedBy[identity.userId] === emoji) delete reactedBy[identity.userId];
+        else reactedBy[identity.userId] = emoji;
+        return { ...answer, reactedBy };
+      });
+      if (!matched) return;
+      handlers.onUpdate(widgetId, { ...widget.data, answers: convexSafeKeys(answers) });
+    },
+    [handlers, identity.userId],
+  );
+
+  // Picking from the tray puts the thing in your hand; `placeItem` commits it
+  // where you click. Nothing lands off-screen in a corner of the board.
+  const addWidget = (type: WidgetType, origin?: { x: number; y: number }) => {
+    if (!getWidgetBlueprint(type) || !space) return;
+    playSound("tap");
+    setPlacing({ kind: "widget", type });
+    setPlacingOrigin(origin);
+    setPickerOpen(false);
+  };
+
+  const addSticker = (stickerId: string, origin?: { x: number; y: number }) => {
+    if (!getStickerDefinition(stickerId) || !space) return;
+    playSound("tap");
+    setPlacing({ kind: "sticker", stickerId });
+    setPlacingOrigin(origin);
+    setPickerOpen(false);
+  };
+
+  const placeItem = async (point: CanvasPoint, keepPlacing: boolean) => {
+    if (!placing || !space) return;
+    if (!keepPlacing) setPlacing(null);
+
+    /* On #/play a picker drop arrives already filled in like the crew's
+       (src/lib/playPresets.ts), size and tilt included, so a blank room can be
+       rebuilt by hand and look like the room everyone has seen. */
+    const preset = playLab && placing.kind === "widget" ? playPresetFor(placing.type) : null;
+    const size = preset ? { w: preset.w, h: preset.h } : placingSize(placing);
+    const slot = canvasSlotFor(point, size, { w: canvasWidth, h: canvasHeight });
+
+    if (placing.kind === "sticker") {
+      const sticker = getStickerDefinition(placing.stickerId);
+      if (!sticker) return;
+      const createdId = await handlers.onCreate({
+        type: "sticker",
+        ...slot,
+        w: sticker.width,
+        h: sticker.height,
+        z: 1000,
+        rotate: sticker.rotate,
+        data: { stickerId: sticker.id },
+      });
+      if (createdId) setManagedWidgetId(String(createdId));
+      return;
+    }
+
+    const type = placing.type;
+    const blueprint = getWidgetBlueprint(type);
+    if (!blueprint) return;
+    const { id: _blueprintId, ...blueprintData } = blueprint;
+    const createdId = await handlers.onCreate({
+      ...blueprintData,
+      ...slot,
+      w: size.w,
+      h: size.h,
+      z: 1000,
+      ...(preset?.rotate !== undefined ? { rotate: preset.rotate } : {}),
+      data: preset ? preset.data : freshWidgetData(type, type === "linkCard" ? {} : blueprint.data),
+    });
+    if (!createdId) return;
+    setManagedWidgetId(String(createdId));
+    if (type === "linkCard") setEditingWidgetId(String(createdId));
+  };
+
+  const hasBoard = status === "ready" || status === "cached" || status === "empty";
+  /* The header is hidden behind the gate, so it remounts and enters when the
+     door opens. The canvas does not: it settles behind the frosted scrim at
+     load and is simply there, sharp, when the blur lifts — replaying its
+     wavefront on entry made the widgets you were looking at blink out. */
+  const boardKey = `${slug}:${roomEntered ? "in" : "gate"}`;
+  const canvasRecapCites = useMemo(
+    () => recapHover
+      ? [recapHover]
+      : recapCites.concat(payoffFlashId ? [payoffFlashId] : []),
+    [payoffFlashId, recapCites, recapHover],
+  );
+  /* the editor panel open on a card is typing in it: the card is held until it closes */
+  useEffect(() => {
+    if (!editingWidgetId) return;
+    holds.start(editingWidgetId, "type");
+    return () => holds.stop(editingWidgetId, "type");
+  }, [editingWidgetId, holds.start, holds.stop]);
+  const startCanvasGesture = useCallback((widget: Widget, kind: CanvasGestureKind) => {
+    holds.start(widget.id, "drag");
+    handlers.onGestureStart(widget, kind);
+  }, [handlers.onGestureStart, holds.start]);
+  const finishCanvasGesture = useCallback((widgetId: string, layout: CanvasLayout) => {
+    holds.stop(widgetId, "drag");
+    handlers.onGestureEnd(widgetId, layout);
+    if (focusedTarget?.id === widgetId) {
+      window.requestAnimationFrame(() => refitFocusedTarget(CAMERA_EXIT_MS));
+    }
+  }, [focusedTarget?.id, handlers.onGestureEnd, holds.stop, refitFocusedTarget]);
+  const deleteCanvasWidget = useCallback((widgetId: string) => {
+    const widget = widgets.find((item) => item.id === widgetId);
+    if (!widget) return;
+    if (focusedTarget?.id === widgetId) leaveFocus(false);
+    handlers.onDelete(widget);
+  }, [focusedTarget?.id, handlers.onDelete, leaveFocus, widgets]);
+  const finishCanvasFrameLayout = useCallback((widgetId: string) => {
+    handlers.onFrameLayoutCommit(widgetId);
+    if (focusedTarget?.kind === "frame" && focusedTarget.id === widgetId) {
+      window.requestAnimationFrame(() => refitFocusedTarget(CAMERA_EXIT_MS));
+    }
+  }, [focusedTarget, handlers.onFrameLayoutCommit, refitFocusedTarget]);
+  const ignorePromote = useCallback(() => {}, []);
+  const spacePan = useCanvasSpacePan(
+    viewportRef,
+    gateOpen ||
+      focusedTarget?.kind === "widget" ||
+      canvasCameraAnimating ||
+      pickerOpen ||
+      Boolean(spaceDraft) ||
+      Boolean(editingWidgetId) ||
+      Boolean(photoGallery),
+  );
+
+  return (
+    <GamesProvider value={games}>
+    <JigsawProvider value={jigsaw}>
+    <main className={`paper-bg space-theme-${activeCustomization.theme} relative h-dvh overflow-hidden ${chatOpen ? "has-chat-open" : ""} ${spaceDraft ? "has-editor-open is-room-editing" : editingWidgetId ? "has-editor-open" : ""} ${gateOpen ? "has-entry-gate" : ""} ${gateLeaving ? "is-gate-leaving" : ""} ${claimOpen ? "has-claim-popover" : ""} ${photoGalleryWidget ? "has-photo-gallery" : ""} ${focusedTarget?.kind === "frame" ? "has-frame-focus" : ""} ${focusedTarget?.kind === "widget" ? "has-widget-focus" : ""} ${canvasCameraAnimating ? "is-canvas-camera-animating" : ""} ${canvasAwayFromHome ? "is-canvas-away" : ""} ${spacePan.panning ? "is-canvas-panning" : ""} ${spacePan.spaceHeld ? "is-space-panning" : ""}`} style={spaceCustomizationStyle(activeCustomization)} ref={wrapperRef} data-data-mode={mode} data-space-id={slug}>
+      <Rail
+        activeId={slug}
+        onSelectSpace={selectSpace}
+        onCreateClick={openSpacePicker}
+        self={identity}
+        settingsOpen={settingsOpen}
+        onSettingsClick={() => setSettingsOpen((open) => !open)}
+      />
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        uploadPhoto={uploadAvatar}
+        account={account}
+        onSignOut={leaveAccount}
+        joinForm={(done) => (
+          <JoinForm
+            reason="your name, your look, the spaces you're in — kept, so you're the same person on your phone."
+            onJoined={done}
+            onCancel={done}
+          />
+        )}
+      />
+      {roomEntered && space?.slug && (
+        <RoomPresenceHeartbeat roomId={space.slug} userId={presenceId} />
+      )}
+      <SpaceHeader
+        key={boardKey}
+        spaceId={slug}
+        spaceMeta={activeCustomization}
+        spaceName={activeCustomization.name}
+        roomEditing={Boolean(spaceDraft)}
+        onEditSpace={openSpaceEditor}
+        members={members}
+        hereCount={headerHereCount}
+        self={identity}
+        onSelfClick={openClaim}
+        livePeers={liveCursors}
+        arrivalPeerId={arrivalPeer?.userId}
+        inboxAddress={space?.inboxAddress}
+        knowsDoor={mode === "live" && space ? <RoomKnowsDoor slug={slug} count={roomKnows ? standing(roomKnows) : undefined} /> : undefined}
+        addOpen={pickerOpen}
+        onAddClick={() => {
+          if (pickerOpen) {
+            playSound("tap");
+            setPickerOpen(false);
+          } else {
+            openWidgetPicker();
+          }
+        }}
+        entrance={roomEntered}
+      />
+      {/* Canvas content, not page chrome: the board saying what is true about
+          itself right now. Mock mode has nothing live to say, so it says
+          nothing. */}
+      {mode === "live" && (
+        <SpaceLiveStrip
+          spaceName={boardRows?.space?.name}
+          boardCount={boardRows?.widgets.length}
+          connected={connectionState.isWebSocketConnected}
+          lastChangeAt={lastChangeAt}
+          gestures={liveGestures}
+          work={spaceWork}
+        />
+      )}
+      {/* Mail arrival — the envelope that narrates the filing
+          (docs/mail-arrival.md). Watches this space's inbound emailEvents;
+          in the #/mail lab it runs fixtures instead. */}
+      {mode === "live" && (space?.inboxAddress || mailLab) && (
+        <MailArrival
+          spaceId={space ? String(space._id) : undefined}
+          widgets={widgets}
+          lab={mailLab}
+        />
+      )}
+      {/* Play lab — the blank take room for the demo video's opening
+          (docs/local/play-lab.md): the pill makes/wipes the room and runs the
+          ghost cursors; the pre-filled drops are wired in placeItem above. */}
+      {mode === "live" && playLab && (
+        <Suspense fallback={null}>
+          <PlayLab
+            spaceId={space ? String(space._id) : null}
+            widgets={widgets}
+            canvas={{ w: canvasWidth, h: canvasHeight }}
+          />
+        </Suspense>
+      )}
+      {focusedTarget && (
+        <nav className="canvas-focus-hud" aria-label="Focused canvas item">
+          <button
+            type="button"
+            className="canvas-focus-hud-back"
+            onClick={() => leaveFocus()}
+            aria-label={`Back to ${mockSpace.name}`}
+            aria-keyshortcuts="Escape"
+          >
+            <span className="canvas-focus-hud-arrow" aria-hidden="true">←</span>
+            <span className="canvas-focus-hud-space">{mockSpace.name}</span>
+            <span className="canvas-focus-hud-separator" aria-hidden="true">/</span>
+            <strong>{focusedTarget.label}</strong>
+          </button>
+          {focusedFrame && (
+            <button
+              type="button"
+              className={`canvas-focus-hud-edit ${editingWidgetId === focusedFrame.id ? "is-active" : ""}`}
+              onClick={() => openWidgetEditor(focusedFrame.id)}
+              aria-pressed={editingWidgetId === focusedFrame.id}
+            >
+              <span aria-hidden="true">✎</span>
+              edit frame
+            </button>
+          )}
+        </nav>
+      )}
+      <div
+        ref={viewportRef}
+        className={`space-scroll h-full overflow-auto ${
+          spacePan.panning ? "is-canvas-panning" : ""
+        } ${spacePan.spaceHeld ? "is-space-panning" : ""}`}
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          setCanvasAwayFromHome(el.scrollLeft > 48 || el.scrollTop > 72);
+          // Scroll-linked header fade: 0 at home → 1 by ~150px down / ~260px right.
+          const fade = Math.min(1, Math.max(el.scrollTop / 150, el.scrollLeft / 260));
+          el.parentElement?.style.setProperty("--header-scroll-fade", fade.toFixed(3));
+        }}
+      >
+        <div
+          ref={canvasStageRef}
+          className="canvas-stage"
+          style={{
+            width: Math.ceil(canvasWidth * canvasScale),
+            height: Math.ceil(canvasHeight * canvasScale),
+          }}
+        >
+          <div
+            ref={canvasScaleLayerRef}
+            className="canvas-scale-layer"
+            style={{
+              width: canvasWidth,
+              height: canvasHeight,
+              transform: `scale(${canvasScale})`,
+            }}
+          >
+            {hasBoard ? (
+              <Canvas
+                key={`${slug}:board`}
+                spaceId={slug}
+                widgets={canvasWidgets}
+                cursors={liveCursors}
+                labPeers={labPeers}
+                members={members}
+                selectedWidgetId={
+                  focusedTarget?.kind === "widget"
+                    ? focusedTarget.id
+                    : selectedWidgetId
+                }
+                onWidgetSelect={focusWidgetThread}
+                managedWidgetId={managedWidgetId}
+                onWidgetManage={setManagedWidgetId}
+                onGestureStart={startCanvasGesture}
+                onGestureChange={handlers.onGestureChange}
+                onGestureEnd={finishCanvasGesture}
+                onLayoutCommit={handlers.onLayoutCommit}
+                onWidgetDelete={deleteCanvasWidget}
+                onWidgetEdit={openWidgetEditor}
+                editingWidgetId={editingWidgetId}
+                focusedTargetId={focusedTarget?.id ?? ""}
+                focusedTargetKind={focusedTarget?.kind}
+                canvasScale={canvasScale}
+                onFrameFocus={focusFrame}
+                onFrameLayoutChange={handlers.onFrameLayoutChange}
+                onFrameLayoutCommit={finishCanvasFrameLayout}
+                onPollVote={handlers.onVote}
+                onWheelSpin={handlers.onWheelSpin}
+                onCheckIn={handlers.onCheckIn}
+                waiting={waitingOn}
+                flows={flows}
+                onWidgetData={handlers.onUpdate}
+                onPlaylistTune={handlers.onPlaylistTune}
+                onLetterOpen={handlers.onLetterOpen}
+                buildRoomFeed={buildRoomFeed}
+                roundtableRepliesByWidget={roundtableRepliesByWidget}
+                paintStrokesByWidget={paintStrokesByWidget}
+                paintIdentity={identity}
+                onPaintStroke={paintStroke}
+                onPaintClear={clearPaintWidget}
+                onPaintCursor={presence.reportZone}
+                pollSelections={pollSelections}
+                onRsvp={respondToRsvp}
+                rsvpSelections={rsvpSelections}
+                onDailyAnswer={answerDailyQuestion}
+                dailyAnswers={dailyAnswers}
+                onDailyReact={reactToDailyAnswer}
+                dailyReactions={dailyReactions}
+                localCommentCounts={commentCounts}
+                onClaim={handlers.onClaim}
+                claimantId={identity.userId}
+                promoted={promotedMessageIds.size > 0}
+                onPromote={ignorePromote}
+                recapCites={canvasRecapCites}
+                entrance
+                arrivalPeerId={arrivalPeer?.userId}
+                viewportRef={viewportRef}
+                overlay={jigsaw ? jigsawOverlay : null}
+                placingItem={placing}
+                placingOrigin={placingOrigin}
+                onPlaceItem={placeItem}
+                onPlaceCancel={() => setPlacing(null)}
+              />
+            ) : (
+              <div className="space-loading-field" aria-hidden="true" />
+            )}
+            {ghostLifecycle !== "hidden" && (
+              <GhostCanvas spaceId={slug} phase={ghostLifecycle === "leaving" ? "leaving" : "in"} />
+            )}
+            {status === "empty" && !madeRoom && (
+              <div className="space-state-pill">nothing here yet</div>
+            )}
+            {status === "missing" && (
+              <div className="space-state-pill">this room doesn't exist</div>
+            )}
+          </div>
+        </div>
+      </div>
+      {moreRight && <div className="canvas-edge-fade" aria-hidden="true" />}
+      {showLoading && (
+        <div className="space-loading-pill">
+          <span className="space-loading-pill-dot" aria-hidden="true" />
+          opening <em>{mockSpace.name}</em>…
+        </div>
+      )}
+      {photoGalleryWidget && (
+        <PhotoWallGallery
+          key={photoGalleryWidget.id}
+          widget={photoGalleryWidget}
+          spaceName={activeCustomization.name}
+          origin={photoGallery?.origin}
+          printOrigins={photoGallery?.printOrigins}
+          comments={photoGalleryComments}
+          onComment={sendPhotoComment}
+          onAddPhoto={addPhotoToWall}
+          onClose={closePhotoGallery}
+        />
+      )}
+      {openRoom?.kind === "pile" && pileWidget && (
+        <ReadingRoom
+          key={pileWidget.id}
+          pileId={pileWidget.id}
+          links={buildRoomLinks}
+          replyCounts={buildRoomReplyCounts}
+          messagesByThread={messagesByThread}
+          faces={members}
+          userId={identity.userId}
+          origin={openRoom.origin}
+          initialLinkId={pendingLinkId ?? undefined}
+          onDrop={dropLinks}
+          onVote={voteOnLink}
+          onPin={pinLink}
+          onKeep={keepTakeaway}
+          onReply={handlers.onSend}
+          onRetry={retryLink}
+          onSearch={searchTopic}
+          onCrawl={crawlSiteHandler}
+          onZone={presence.reportZone}
+          onClose={closeRoom}
+        />
+      )}
+      {activeCrawl && (
+        <CrawlStrip
+          crawlId={activeCrawl}
+          onKeep={keepCrawlPage}
+          onClose={() => setActiveCrawl(null)}
+        />
+      )}
+      {openRoom?.kind === "ship" && shipRoomWidget && (
+        <ShipRoom
+          key={shipRoomWidget.id}
+          widget={shipRoomWidget}
+          replies={messagesByThread[shipRoomWidget.id] ?? []}
+          origin={openRoom.origin}
+          onReply={(text) => handlers.onSend(shipRoomWidget.id, text)}
+          onAddImage={(file) => attachShipImage(shipRoomWidget.id, file)}
+          onClose={closeRoom}
+        />
+      )}
+      {activeThreadWidget && (
+        <WidgetThreadDock
+          viewportRef={viewportRef}
+          widgetId={activeThreadWidget.id}
+          widgetType={activeThreadWidget.type}
+          label={widgetLabel(activeThreadWidget)}
+          messages={activeThreadMessages}
+          placement={threadDockPlacement}
+          onSend={(text) => handlers.onSend(activeThreadKey, text)}
+          onSizeChange={
+            focusedTarget?.kind === "widget"
+              ? updateThreadDockSize
+              : undefined
+          }
+          topper={
+            activeThreadQuestions.length > 0 ? (
+              <LinkQuestionStrip
+                questions={activeThreadQuestions}
+                activeId={activeQuestion?.id ?? ""}
+                counts={activeQuestionCounts}
+                onPick={setActiveQuestionId}
+              />
+            ) : undefined
+          }
+          placeholder={activeQuestion ? "your take…" : undefined}
+          emptyText={activeQuestion ? "No takes yet — go first." : undefined}
+          actions={
+            activeThreadWidget.type === "rsvp" ? (
+              <div className="thread-rsvp-chips">
+                <span>going?</span>
+                {RSVP_CHOICES.map((choice) => (
+                  <button
+                    key={choice.status}
+                    type="button"
+                    className={
+                      rsvpSelections[activeThreadWidget.id] === choice.status
+                        ? "is-picked"
+                        : ""
+                    }
+                    onClick={() =>
+                      respondToRsvp(activeThreadWidget.id, choice.status)
+                    }
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            ) : undefined
+          }
+        />
+      )}
+      {(gateOpen || gateLeaving) && (
+        <div
+          className={`entry-gate-scrim${gateLeaving ? " is-lifting" : ""}`}
+          aria-hidden="true"
+        />
+      )}
+      {(gateOpen || gateLeaving || claimOpen || claimLeaving) && (
+        <GateCursor
+          identity={identity}
+          leaving={gateLeaving || claimLeaving}
+          positionRef={gateCursorPoint}
+          initialPoint={roomEntered ? claimPoint : null}
+          handOver={ownCursorOn}
+        />
+      )}
+      {/* Your own cursor on the canvas, once the door (or the identity
+          popover) has handed it over. */}
+      {ownCursorOn && roomEntered && !gateLeaving && !claimOpen && !claimLeaving && (
+        <OwnCursor identity={identity} initialPoint={gateCursorPoint.current} />
+      )}
+      {isInvalidInvite || isMissingSpace ? (
+        <div className="invalid-invite-card" role="alert">
+          <span className="invalid-invite-mark" aria-hidden="true">↗</span>
+          <span className="claim-card-kicker">
+            {isInvalidInvite ? "invite link" : "no space here"}
+          </span>
+          <h2>
+            {isInvalidInvite
+              ? "this door doesn't open anymore"
+              : "there's no space at this link"}
+          </h2>
+          <p>
+            {isInvalidInvite
+              ? "That space may have moved or been closed."
+              : "It may have been renamed, or it never existed."}
+          </p>
+          <a href="#/space/crew" className="invalid-invite-back">visit the crew →</a>
+        </div>
+      ) : (
+        <ClaimCard
+          open={gateOpen || gateLeaving || claimOpen || claimLeaving}
+          variant={roomEntered && !gateLeaving ? "popover" : "gate"}
+          leaving={gateLeaving || claimLeaving}
+          cursorPosition={gateCursorPoint}
+          onClose={roomEntered ? closeClaim : enterRoom}
+          room={{
+            spaceName: mockSpace.name,
+            spaceColor: mockSpace.color,
+            // The roster says who lives here; only the presence component's
+            // occupancy says who is in. Fixture `online` flags never stand
+            // in for the live count.
+            memberNames: members.map((member) => member.name),
+            presenceCount: hereCount ?? 0,
+          } satisfies RoomContext}
+        />
+      )}
+      <WidgetPicker
+        open={pickerOpen}
+        onAddSticker={addSticker}
+        onAddWidget={addWidget}
+        onClose={() => setPickerOpen(false)}
+      />
+      {madeRoom && roomEntered && !gateOpen && cardCount === 0 && status !== "loading" && !nudgeTake && (
+        <NewRoomStart roomName={space?.name ?? ""} onAsk={askStarter} />
+      )}
+      {/* a tour room, first visit: the hint pinned to the orb, its starters
+          through the same path as the empty room's */}
+      {orbHint && !madeRoom && !!SPACES_BY_ID[slug] && roomEntered && !gateOpen && !gateLeaving && !claimOpen && status !== "loading" && (
+        <OrbHint roomName={mockSpace.name} onAsk={askStarter} onGone={() => setOrbHint(false)} />
+      )}
+      {showInviteNudge && (
+        <NewRoomInvite
+          slug={slug}
+          first={nudgeTake || (startedEmpty.current === true && cardCount === 1)}
+          onClose={() => {
+            sessionStorage.setItem(`ourspaces:invite-nudge:${slug}`, "closed");
+            setInviteClosed(true);
+          }}
+        />
+      )}
+      <SpaceMaker
+        open={spacePickerOpen}
+        onClose={() => setSpacePickerOpen(false)}
+        onMade={(newSlug) => {
+          setSpacePickerOpen(false);
+          window.location.hash = normalSpaceHash(newSlug);
+        }}
+      />
+      <WidgetEditorPanel
+        widget={editingWidget}
+        onClose={() => setEditingWidgetId("")}
+        onSave={(widgetId, data, layout) => {
+          // Every editor form spreads the widget's existing `data`, which came
+          // back from `restoreKeys` with its unicode keys unescaped — saving a
+          // daily question that has 😂 reactions was rejected by the encoder
+          // before it ever reached the mutation.
+          // a date a person sets by hand is their choice: a voice edit that would move it asks them first (R2)
+          const hand = editingWidget?.type === "countdown" && data.targetDate !== editingWidget.data.targetDate ? { dateBy: { id: identity.userId, name: identity.name } } : {};
+          handlers.onUpdate(widgetId, convexSafeKeys({ ...data, ...hand }));
+          if (layout) handlers.onResize(widgetId, layout.w, layout.h);
+          // A saved link gets OpenAI conversation starters; canned ones from
+          // the editor hold the spot until the action lands.
+          const saved = widgets.find((item) => item.id === widgetId);
+          if (saved?.type === "linkCard" && typeof data.url === "string" && data.url && space) {
+            void sparkQuestions({
+              widgetId: widgetId as Id<"widgets">,
+              spaceId: space._id,
+              title: String(data.title ?? ""),
+              description: String(data.description ?? ""),
+            }).catch(() => {});
+          }
+          setEditingWidgetId("");
+        }}
+        onResolveLink={handlers.onResolveLink}
+        onDelete={(widgetId) => {
+          const widget = widgets.find((item) => item.id === widgetId);
+          if (widget) handlers.onDelete(widget);
+          setEditingWidgetId("");
+        }}
+        onFrameLayoutChange={handlers.onFrameLayoutChange}
+        onFrameLayoutCommit={(widgetId) => {
+          handlers.onFrameLayoutCommit(widgetId);
+          if (focusedTarget?.kind === "frame" && focusedTarget.id === widgetId) {
+            window.requestAnimationFrame(() => refitFocusedTarget(CAMERA_EXIT_MS));
+          }
+        }}
+      />
+      <SpaceEditorPanel
+        value={spaceDraft}
+        onChange={setSpaceDraft}
+        onClose={() => setSpaceDraft(null)}
+        onSave={saveSpace}
+      />
+      {handlers.deleted && (
+        <div className="widget-undo-toast" role="status">
+          <span><strong>{String(handlers.deleted.data.title ?? handlers.deleted.type)}</strong> deleted</span>
+          <button type="button" onClick={handlers.onUndoDelete}>undo</button>
+        </div>
+      )}
+      {arrivalPeer && (
+        <div className="arrival-toast" role="status" aria-live="polite">
+          <MemberFace
+            name={arrivalPeer.name}
+            emoji={arrivalPeer.emoji}
+            color={arrivalPeer.color}
+            avatarUrl={arrivalPeer.avatarUrl}
+            size="sm"
+            className="is-new-arrival"
+          />
+          <strong>{arrivalPeer.name} just walked in</strong>
+        </div>
+      )}
+      <GlobalChatPanel
+        spaceId={slug}
+        open={chatOpen}
+        activeThreadId="global"
+        onToggle={() => { playSound("tap"); setChatOpen((open) => !open); }}
+        onThreadChange={() => {}}
+        onSendMessage={() => {}}
+        title={activeCustomization.name}
+        messages={globalMessages}
+        onSend={(text) => handlers.onSend("global", text)}
+        onPromote={promotable ? () => handlers.onPromote(promotable.id, promotePosition.x, promotePosition.y) : undefined}
+        promoted={Boolean(promotable && promotedMessageIds.has(promotable.id))}
+        highlightMessageId={highlightMessageId}
+      />
+      <VoiceBuildLayer {...voiceBuild} color={identity.color} by={identity.name} />
+      <RowHalos host={viewportRef.current?.querySelector<HTMLElement>(".space-canvas") ?? null} leases={leases} me={identity.userId} />
+      <RowGhosts
+        host={viewportRef.current?.querySelector<HTMLElement>(".space-canvas") ?? null}
+        ghosts={ghosts}
+        leases={leases}
+        me={identity.userId}
+        onCancel={(id) => void cancelPending({ pendingId: id as Id<"pending">, userId: identity.userId })}
+      />
+      <RowVotes
+        host={viewportRef.current?.querySelector<HTMLElement>(".space-canvas") ?? null}
+        votes={rowVotes}
+        me={identity}
+        onAnswer={onAnswerVote}
+        onWithdraw={(id) => void withdrawVote({ voteId: id as Id<"choiceVotes">, userId: identity.userId })}
+      />
+      <EditSlips
+        slips={[...editSlips, ...rowSlips]}
+        host={viewportRef.current?.querySelector<HTMLElement>(".space-canvas") ?? null}
+        at={(id) => {
+          const w = adaptedWidgets.find((x) => x.id === id);
+          return w ? { x: w.x, y: w.y } : null;
+        }}
+      />
+      {roomEntered && (
+        <YourTurn
+          roomKey={slug}
+          items={turnItems}
+          viewer={turnViewer}
+          onJoin={() => games?.join()}
+          onVote={handlers.onVote}
+          onRsvp={respondToRsvp}
+          onAnswer={answerDailyQuestion}
+          onClaim={handlers.onClaim}
+          onDecide={onAnswerVote}
+          onDays={(widgetId, dayIndex) => {
+            const widget = rawWidgetsRef.current.find((item) => item.id === widgetId);
+            if (!widget) return;
+            const days = Array.isArray(widget.data.days) ? widget.data.days : [];
+            handlers.onUpdate(widgetId, {
+              ...widget.data,
+              members: [
+                ...(Array.isArray(widget.data.members) ? widget.data.members : []),
+                { name: identity.name, userId: identity.userId, slots: days.map((_, index) => index === dayIndex) },
+              ],
+            });
+          }}
+        />
+      )}
+      {games && (
+        <>
+          <GameInvite />
+          <JigsawInvite />
+          <JigsawDev />
+          <GamesDev />
+          <GameSheetTab />
+          <GameSheet />
+        </>
+      )}
+      <ActionDock
+        voice={voiceHooks}
+        recapOpen={recapOpen}
+        recapRunId={recapRunId}
+        recapLines={recapLines}
+        recapSince={recapSince}
+        recapTurns={recapTurns}
+        recapLoading={recapBusy || (recapOpen && latestRecap === undefined)}
+        recapAsking={recapAsking}
+        recapCached={latestRecap != null}
+        recapTurnsReady={allMessages !== undefined}
+        onRecapRefresh={refreshRecap}
+        onRecapAsk={onRecapAsk}
+        recapTargets={recapTargets}
+        onRecapJumpWidget={jumpToRecapWidget}
+        onRecapReveal={revealRecap}
+        onRecapClose={closeRecap}
+        onRecapHover={setRecapHover}
+        onRecapJump={jumpToRecapMessage}
+        chatOpen={chatOpen}
+        messageCount={globalMessages.length}
+        soundEnabled={soundEnabled}
+        radioRoom={radioRoomOf(adaptedWidgets)}
+        onRadioTune={handlers.onPlaylistTune}
+        onRecapToggle={() => {
+          playSound("tap");
+          if (recapOpen) closeRecap();
+          else {
+            if (focusedTarget?.kind === "widget") leaveFocus(false);
+            setChatOpen(false);
+            openRecap();
+          }
+        }}
+        onChatToggle={() => {
+          if (focusedTarget?.kind === "widget") {
+            leaveFocus(false);
+            playSound("tap");
+            setChatOpen(true);
+            return;
+          }
+          playSound("tap");
+          setChatOpen((open) => !open);
+        }}
+        onSoundToggle={() => {
+          const next = !soundEnabled;
+          setSound(next);
+          setSoundEnabled(next);
+          if (next) playSound("tap");
+        }}
+      />
+      {mode === "live" && space && roomEntered && (
+        <RoomKnowsPage
+          slug={slug}
+          roomName={activeCustomization.name}
+          knows={roomKnows}
+          self={identity}
+          heldBack={<LiveHeldBack spaceId={space._id} />}
+          onChange={(change) => void correctKnows({ spaceId: space._id, by: identity.name, color: identity.color, change })}
+        />
+      )}
+    </main>
+    </JigsawProvider>
+    </GamesProvider>
+  );
+}
