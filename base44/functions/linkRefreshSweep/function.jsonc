@@ -1,0 +1,15 @@
+{
+  "name": "linkRefreshSweep",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "scheduled",
+      "name": "refresh_stale_links",
+      "description": "Friday 17:00 UTC — enqueue stale linkCards for refresh (was convex/crons.ts 'refresh stale links').",
+      "is_active": true,
+      "schedule_mode": "recurring",
+      "schedule_type": "cron",
+      "cron_expression": "0 17 * * 5"
+    }
+  ]
+}

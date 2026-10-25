@@ -1,0 +1,25 @@
+// HubbleSpace — Base44 project configuration.
+//
+// `base44 link` / `base44 create` writes base44/.app.jsonc (app id, gitignored)
+// next to this file. After linking, `base44 entities push` deploys the
+// schemas in ./entities and `base44 deploy` pushes functions, actors and the
+// built site.
+{
+  "name": "hubblespace",
+  "description": "HubbleSpace — your shared space for turning ideas into action. Migrated from the MIT-licensed OurSpaces project (Convex → Base44).",
+  "visibility": "public",
+
+  "entitiesDir": "./entities",
+  "functionsDir": "./functions",
+  "actorsDir": "./actors",
+  "authDir": "./auth",
+
+  "site": {
+    // Vite output; `site.buildCommand` is run by `base44 build` / `deploy --build`
+    // with VITE_BASE44_APP_ID injected into the frontend build.
+    "outputDirectory": "./dist",
+    "buildCommand": "npm run build",
+    "installCommand": "npm install",
+    "serveCommand": "npm run dev"
+  }
+}

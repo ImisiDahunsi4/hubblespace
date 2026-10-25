@@ -1,0 +1,21 @@
+{
+  "name": "PaintMark",
+  "type": "object",
+  "title": "PaintMark",
+  "description": "A stroke or filled region in the collaborative coloring room. Migrated from convex/tables/rooms.ts `paintMarks`.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "widgetId": { "type": "string" },
+    "userId": { "type": "string" },
+    "authorName": { "type": "string" },
+    "authorColor": { "type": "string" },
+    "tone": { "type": "string", "enum": ["berry", "orange", "blue", "violet", "teal", "lime"] },
+    "size": { "type": "number" },
+    "points": { "type": "array", "items": { "type": "object", "properties": { "x": { "type": "number" }, "y": { "type": "number" } } } },
+    "regionId": { "type": "string" },
+    "preset": { "type": "string", "enum": ["electric", "sunset"] },
+    "createdAt": { "type": "number" }
+  },
+  "required": ["spaceId", "widgetId", "userId", "authorName", "authorColor", "tone", "size", "points", "createdAt"],
+  "x-convex-indexes": ["by_space", "by_space_and_widget"]
+}

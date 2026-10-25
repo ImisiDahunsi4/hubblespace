@@ -1,0 +1,21 @@
+{
+  "name": "Message",
+  "type": "object",
+  "title": "Message",
+  "description": "Chat: global, per-widget, photo and question sub-threads via the widgetId key. Migrated from convex/tables/rooms.ts `messages`. Author fields are denormalized on purpose (no join on a live thread).",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "widgetId": { "type": "string", "description": "'global' | Widget.id | '<widgetId>::photo:<id>' | '<widgetId>::q:<n>' | 'recap'" },
+    "userId": { "type": "string" },
+    "text": { "type": "string" },
+    "createdAt": { "type": "number" },
+    "authorName": { "type": "string" },
+    "authorColor": { "type": "string" },
+    "authorEmoji": { "type": "string" },
+    "authorAvatarUrl": { "type": "string" },
+    "promotable": { "type": "boolean" },
+    "promotedWidgetId": { "type": "string", "description": "Widget.id created by promoteMessage" }
+  },
+  "required": ["spaceId", "widgetId", "userId", "text", "createdAt", "authorName", "authorColor"],
+  "x-convex-indexes": ["by_widget", "by_space", "by_space_widget", "search:search_text(text, spaceId)"]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Deal",
+  "type": "object",
+  "title": "Deal",
+  "description": "A voice ask's receipt — what was asked, what the model dealt, timings. Migrated from convex/tables/voice.ts `deals` (convex/voiceBuild.ts). `run` is a JSON blob kept as a string to match the source.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "run": { "type": "string", "description": "JSON: nonce, ask text, dealt cards, timings, model info" }
+  },
+  "required": ["spaceId", "run"],
+  "x-convex-indexes": ["by_space"]
+}

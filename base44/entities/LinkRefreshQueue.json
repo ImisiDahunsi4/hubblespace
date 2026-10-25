@@ -1,0 +1,12 @@
+{
+  "name": "LinkRefreshQueue",
+  "type": "object",
+  "title": "LinkRefreshQueue",
+  "description": "Queue of stale linkCards awaiting a Firecrawl refresh. Migrated from convex/tables/mail.ts `linkRefreshQueue`. Convex used a commit-ts cursor; use created_date or an explicit queuedAt ms timestamp instead.",
+  "properties": {
+    "widgetId": { "type": "string" },
+    "queuedAt": { "type": "number" }
+  },
+  "required": ["widgetId", "queuedAt"],
+  "x-convex-indexes": ["queuedAt"]
+}

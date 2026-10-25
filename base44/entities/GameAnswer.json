@@ -1,0 +1,16 @@
+{
+  "name": "GameAnswer",
+  "type": "object",
+  "title": "GameAnswer",
+  "description": "Each pick, held back until the round's reveal ('answer to see', enforced server-side). Migrated from convex/tables/games.ts `gameAnswers`.",
+  "properties": {
+    "gameId": { "type": "string" },
+    "n": { "type": "number" },
+    "userId": { "type": "string" },
+    "by": { "type": "string" },
+    "pick": { "type": "string" },
+    "at": { "type": "number" }
+  },
+  "required": ["gameId", "n", "userId", "by", "pick", "at"],
+  "x-convex-indexes": ["by_game(gameId, n)"]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Link",
+  "type": "object",
+  "title": "Link",
+  "description": "Card feeds card — one widget's event fills another's field (the 'flows' system, convex/links.ts). Migrated from convex/tables/voice.ts `links`.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "from": { "type": "string", "description": "source Widget.id" },
+    "to": { "type": "string", "description": "target Widget.id" },
+    "when": { "type": "string" },
+    "fill": { "type": "string" },
+    "value": { "type": "string" },
+    "at": { "type": "number" },
+    "resolvedAt": { "type": "number" },
+    "tag": { "type": "string", "description": "its thread" },
+    "cutAt": { "type": "number" },
+    "vote": { "type": "string", "description": "ChoiceVote.id if its write opened a vote (links.ts writeLinked)" }
+  },
+  "required": ["spaceId", "from", "to", "when", "fill", "value"],
+  "x-convex-indexes": ["by_from", "by_space"]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Member",
+  "type": "object",
+  "title": "Member",
+  "description": "Who is in which room, by name and color. Migrated from convex/tables/rooms.ts `members`. userId is a string: a Base44 user id for live users or a 'seed:*' fixture id.",
+  "properties": {
+    "spaceId": { "type": "string", "description": "Space.id" },
+    "userId": { "type": "string" },
+    "name": { "type": "string" },
+    "color": { "type": "string" },
+    "emoji": { "type": "string" },
+    "avatarUrl": { "type": "string" },
+    "lastSeen": { "type": "number" }
+  },
+  "required": ["spaceId", "userId", "name", "color", "lastSeen"],
+  "x-convex-indexes": ["by_space", "by_space_user", "by_user"]
+}

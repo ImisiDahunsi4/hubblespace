@@ -1,0 +1,64 @@
+{
+  "name": "ChoiceVote",
+  "type": "object",
+  "title": "ChoiceVote",
+  "description": "A write that would override people's choices, put to those people. Migrated from convex/tables/rightOfWay.ts `choiceVotes` (convex/choiceVotes.ts).",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "widgetId": { "type": "string" },
+    "key": { "type": "string" },
+    "stake": { "type": "string" },
+    "voters": {
+      "type": "array",
+      "description": "the people whose choice is at stake",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "why": { "type": "string" }
+        },
+        "required": ["name", "why"]
+      }
+    },
+    "options": {
+      "type": "array",
+      "description": "keep + up to two changes",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "ask": { "type": "string" },
+          "changed": { "type": "string" },
+          "op": { "type": "string", "description": "the edit, JSON" },
+          "by": { "type": "string" },
+          "byUserId": { "type": "string" },
+          "writeId": { "type": "string" }
+        },
+        "required": ["id", "ask"]
+      }
+    },
+    "answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "voter": { "type": "string" },
+          "option": { "type": "string" },
+          "at": { "type": "number" }
+        },
+        "required": ["voter", "option", "at"]
+      }
+    },
+    "state": { "type": "string", "description": "open | change | keep | withdrawn | moot" },
+    "why": { "type": "string" },
+    "note": { "type": "string" },
+    "landed": { "type": "string" },
+    "today": { "type": "string" },
+    "at": { "type": "number" },
+    "endsAt": { "type": "number" },
+    "closedAt": { "type": "number" }
+  },
+  "required": ["spaceId", "widgetId", "key", "stake", "voters", "options", "answers", "state", "today", "at", "endsAt"],
+  "x-convex-indexes": ["by_widget(widgetId, state)", "by_space(spaceId, at)"]
+}

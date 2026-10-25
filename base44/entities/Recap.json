@@ -1,0 +1,26 @@
+{
+  "name": "Recap",
+  "type": "object",
+  "title": "Recap",
+  "description": "Generated 'catch me up' briefings, daily (cron) and asked. Migrated from convex/tables/mail.ts `recaps`.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "since": { "type": "string" },
+    "kind": { "type": "string", "enum": ["daily", "ask"] },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "widgetId": { "type": "string" },
+          "messageId": { "type": "string" }
+        },
+        "required": ["text"]
+      }
+    },
+    "createdAt": { "type": "number" }
+  },
+  "required": ["spaceId", "since", "kind", "lines", "createdAt"],
+  "x-convex-indexes": ["by_space", "by_space_kind_created"]
+}

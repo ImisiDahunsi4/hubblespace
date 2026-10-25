@@ -1,0 +1,15 @@
+{
+  "name": "nightlyReset",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "scheduled",
+      "name": "nightly_room_reset",
+      "description": "07:00 UTC — every room with a saved baseline returns to it (was convex/crons.ts 'nightly room reset').",
+      "is_active": true,
+      "schedule_mode": "recurring",
+      "schedule_type": "cron",
+      "cron_expression": "0 7 * * *"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "AiWrite",
+  "type": "object",
+  "title": "AiWrite",
+  "description": "The Right of Way ledger: every AI write through the one door, with its verdict. Migrated from convex/tables/rightOfWay.ts `aiWrites`.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "widgetId": { "type": "string" },
+    "kind": { "type": "string", "description": "edit | undo | link | build | game | puzzle" },
+    "by": { "type": "string", "description": "asker's display name, 'link', or 'the space'" },
+    "byUserId": { "type": "string" },
+    "fields": { "type": "string", "description": "JSON [{field, old, new}]" },
+    "verdict": { "type": "string", "description": "go | ask | wait | never" },
+    "reason": { "type": "string" },
+    "text": { "type": "string", "description": "the slip line, e.g. 'added ramen'" },
+    "undo": { "type": "string", "description": "inverse op JSON for undo" },
+    "undone": { "type": "boolean" },
+    "at": { "type": "number" },
+    "outcome": { "type": "string", "description": "what a wait came to: JSON {state, ms, on, heldBy}" },
+    "others": { "type": "array", "items": { "type": "string" }, "description": "holders seen at the door" }
+  },
+  "required": ["spaceId", "kind", "by", "fields", "verdict", "at"],
+  "x-convex-indexes": ["by_space"]
+}

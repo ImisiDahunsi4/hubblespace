@@ -1,0 +1,20 @@
+{
+  "name": "WorkLog",
+  "type": "object",
+  "title": "WorkLog",
+  "description": "The 'the room is thinking' ledger — each real boundary inside a mail/link/search/crawl action writes a row. Migrated from convex/tables/mail.ts `work` (convex/work.ts). Only write where the work actually happened; bounded per space.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "runId": { "type": "string" },
+    "step": { "type": "string" },
+    "line": { "type": "string" },
+    "kind": { "type": "string", "enum": ["mail", "link", "search", "crawl"] },
+    "status": { "type": "string", "enum": ["running", "done", "failed"] },
+    "subject": { "type": "string" },
+    "widgetId": { "type": "string" },
+    "createdAt": { "type": "number" }
+  },
+  "required": ["spaceId", "runId", "step", "line", "kind", "status", "createdAt"],
+  "x-convex-indexes": ["by_space"],
+  "x-convex-table": "work"
+}

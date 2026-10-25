@@ -1,0 +1,38 @@
+{
+  "name": "Game",
+  "type": "object",
+  "title": "Game",
+  "description": "A game in a room and its phase. Migrated from convex/tables/games.ts `games` (convex/games.ts; types in src/lib/games/types.ts).",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "kind": { "type": "string" },
+    "name": { "type": "string" },
+    "phase": { "type": "string" },
+    "round": { "type": "number" },
+    "startedBy": {
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["userId", "name", "color"]
+    },
+    "startedAt": { "type": "number" },
+    "phaseEndsAt": { "type": "number" },
+    "cast": {
+      "type": "array",
+      "items": { "type": "object", "properties": { "name": { "type": "string" }, "color": { "type": "string" } }, "required": ["name", "color"] }
+    },
+    "seat": {
+      "type": "array",
+      "items": { "type": "object", "properties": { "name": { "type": "string" }, "color": { "type": "string" } }, "required": ["name", "color"] }
+    },
+    "seatWhy": { "type": "string" },
+    "known": { "type": "number", "description": "jigsaw: pieces placed" },
+    "worded": { "type": "string", "description": "model | templates" },
+    "photo": { "type": "string" }
+  },
+  "required": ["spaceId", "kind", "name", "phase", "round", "startedBy", "startedAt", "cast"],
+  "x-convex-indexes": ["by_space"]
+}

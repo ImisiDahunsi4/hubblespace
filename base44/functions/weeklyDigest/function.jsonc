@@ -1,0 +1,15 @@
+{
+  "name": "weeklyDigest",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "scheduled",
+      "name": "weekly_digest",
+      "description": "Friday 16:00 UTC — each space emails its week to everyone who wrote to it (was convex/crons.ts 'weekly digest').",
+      "is_active": true,
+      "schedule_mode": "recurring",
+      "schedule_type": "cron",
+      "cron_expression": "0 16 * * 5"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+// HubbleSpace auth — replaces Convex Auth (convex/auth.ts).
+//
+// Design intent carried over from docs/data-model-plan.md §1:
+//   "Guest or join — never a login wall." The canvas is never behind a
+//   sign-in screen. In OurSpaces a silent Convex-Anonymous sign-in gave every
+//   visitor a real identity; "join" upgraded the same person.
+//
+// Base44 equivalent: keep the app public (config.jsonc "visibility": "public")
+// so anonymous visitors can open a room; the gate card still collects a
+// name/face/color for the room seat. "Join" = a real Base44 account below —
+// the same person's Member rows are re-pointed at the verified user id
+// (replaces the OTP-code upgrade in convex/otp.ts/auth.ts).
+{
+  "enableUsernamePassword": true,
+  "enableGoogleLogin": true,
+  "enableMicrosoftLogin": false,
+  "enableFacebookLogin": false,
+  "enableAppleLogin": false,
+  "googleOAuthMode": "default",
+  "googleOAuthClientId": null,
+  "enableSSOLogin": false,
+  "ssoProviderName": null,
+  "useWorkspaceSSO": false
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Presence",
+  "type": "object",
+  "title": "Presence",
+  "description": "Ephemeral live cursors and in-flight drag gestures. Migrated from convex/tables/rooms.ts `presence`. NOTE: the target design moves this traffic to the spaceRoom actor (base44/actors/spaceRoom) — this entity is the documented fallback for cursor history/debugging, not the hot path.",
+  "properties": {
+    "spaceId": { "type": "string" },
+    "userId": { "type": "string" },
+    "x": { "type": "number" },
+    "y": { "type": "number" },
+    "updatedAt": { "type": "number" },
+    "name": { "type": "string" },
+    "color": { "type": "string" },
+    "emoji": { "type": "string" },
+    "avatarUrl": { "type": "string" },
+    "zone": { "type": "string", "description": "unset = canvas world coords; 'cozy:<boardId>' = normalized 0..1" },
+    "gesture": {
+      "type": "object",
+      "description": "In-flight move/resize; holding it = owning the drag lock",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "widgetId": { "type": "string" },
+        "kind": { "type": "string", "enum": ["move", "resize"] },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" },
+        "z": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
+    }
+  },
+  "required": ["spaceId", "userId", "x", "y", "updatedAt", "name", "color"],
+  "x-convex-indexes": ["by_space", "by_space_user", "by_updated"]
+}

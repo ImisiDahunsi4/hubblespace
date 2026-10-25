@@ -1,0 +1,22 @@
+{
+  "name": "CrawlPage",
+  "type": "object",
+  "title": "CrawlPage",
+  "description": "One page a crawl returned; CrawlStrip subscribes and each is keepable into the link pile. Migrated from @firecrawl/firecrawl-convex component table `pages`.",
+  "properties": {
+    "crawlId": { "type": "string", "description": "Crawl.id" },
+    "url": { "type": "string" },
+    "markdown": { "type": "string" },
+    "html": { "type": "string" },
+    "rawHtml": { "type": "string" },
+    "summary": { "type": "string" },
+    "screenshot": { "type": "string" },
+    "links": { "type": "array", "items": { "type": "string" } },
+    "json": { "type": "string", "description": "extracted JSON, stringified" },
+    "metadata": { "type": "string", "description": "page metadata JSON" },
+    "truncated": { "type": "boolean" },
+    "scrapedAt": { "type": "number" }
+  },
+  "required": ["crawlId", "url", "truncated", "scrapedAt"],
+  "x-convex-indexes": ["crawlId", "crawlId_url"]
+}

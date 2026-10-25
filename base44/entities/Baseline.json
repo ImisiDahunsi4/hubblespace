@@ -1,0 +1,13 @@
+{
+  "name": "Baseline",
+  "type": "object",
+  "title": "Baseline",
+  "description": "What the nightly reset returns a room to — one row per slug. Migrated from convex/tables/rooms.ts `baselines` (convex/admin.ts).",
+  "properties": {
+    "slug": { "type": "string" },
+    "savedAt": { "type": "number" },
+    "json": { "type": "string", "description": "Serialized room snapshot" }
+  },
+  "required": ["slug", "savedAt", "json"],
+  "x-convex-indexes": ["by_slug"]
+}
