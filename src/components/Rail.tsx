@@ -59,6 +59,7 @@ const EXAMPLE_COUNT = 4;
 /** The build room and the house stay real rooms (links, voice) but leave the dock. */
 const OFF_DOCK = new Set(["buildroom", "house"]);
 const DOCK = SPACES.filter((space) => !OFF_DOCK.has(space.id));
+const DOCK_SLUGS = new Set(DOCK.map((space) => space.id));
 
 const SPACE_COVERS: Record<string, string> = {
   crew: "/assets/the-crew-snapshot-thumb.webp",
@@ -67,7 +68,10 @@ const SPACE_COVERS: Record<string, string> = {
   league: "/assets/space-covers/game-day.png",
 };
 
-/** Spaces you made, or were invited into. Live only — see OnlineCount. */
+/** Spaces that exist live but aren't fixture-dock tiles (the build room, and
+ * anything anyone made). Live only — see OnlineCount. listAll, not listMine:
+ * this is a tour — visitors haven't joined anything yet, and hiding the
+ * seeded rooms behind a join would strand the demo. */
 function YoursGroupLive({
   activeId,
   onSelectSpace,
@@ -77,7 +81,8 @@ function YoursGroupLive({
   onSelectSpace?: (id: string) => void;
   offset: number;
 }) {
-  const mine = useQuery(api.spaces.listMine, {}) ?? [];
+  const all = useQuery(api.spaces.listAll, {}) ?? [];
+  const mine = all.filter((space: any) => !DOCK_SLUGS.has(space.slug ?? ""));
   if (mine.length === 0) return null;
 
   return (
@@ -157,6 +162,17 @@ export function Rail({
     if (activeId) rememberSpaceSlug(activeId);
   };
 
+  /* Live mode only: which fixture slugs actually exist on the backend. A tile
+     for a room that was never seeded used to navigate to the "no space at
+     this link" card — now it's simply disabled. While the query is still
+     loading (undefined) we leave tiles enabled rather than flash-disable the
+     ones that are real. */
+  const live = getDataMode() === "live";
+  const liveSpaces = useQuery(api.spaces.listAll, live ? {} : "skip");
+  const liveSlugs = liveSpaces
+    ? new Set(liveSpaces.map((s: any) => s.slug))
+    : undefined;
+
   return (
     <>
     <aside className="space-rail">
@@ -178,7 +194,9 @@ export function Rail({
             ? { ...space, ...activeSpaceOverride }
             : space;
           const spaceCover = SPACE_COVERS[space.id];
-          const hasSpace = Boolean(SPACES_BY_ID[space.id]);
+          const hasSpace =
+            Boolean(SPACES_BY_ID[space.id]) &&
+            (liveSlugs === undefined || liveSlugs.has(space.id));
 
           return (
             <Fragment key={space.id}>

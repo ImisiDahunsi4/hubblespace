@@ -4,6 +4,9 @@
   "title": "Vote",
   "description": "One row per person per poll option. Migrated from convex/tables/rooms.ts `votes`. One-vote-per-user was enforced by the by_widget_user index + upsert — replicate with an updateMany claim or function-level upsert.",
   "properties": {
+    "spaceId": {
+      "type": "string"
+    },
     "widgetId": {
       "type": "string"
     },

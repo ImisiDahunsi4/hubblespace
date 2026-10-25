@@ -891,7 +891,7 @@ export const COUPLE_WIDGETS: Widget[] = [
     data: {
       from: "ren",
       subject: "day 49",
-      text: "hey you,\n\nI walked past the bakery on Sokcho street and it smelled like that morning we got lost. 47 days now. I keep counting.\n\nMail one back: ustwo@agentmail.to — it lands right here.\n\nlove, ren",
+      text: "hey you,\n\nI walked past the bakery on Sokcho street and it smelled like that morning we got lost. 47 days now. I keep counting.\n\nMail one back: us-two@mail.hubblespace.app — it lands right here.\n\nlove, ren",
       receivedAt: Date.now() - 2 * 86_400_000,
       sealed: true,
     },
@@ -1296,7 +1296,7 @@ export const SPACES: SpaceMeta[] = [
     tagline: "your people, in one place",
     preview: "daily q · 3 answered",
     showcase: "birthday HQ · plans, polls, memories",
-    inboxAddress: "hubblespace@agentmail.to",
+    inboxAddress: "the-crew@mail.hubblespace.app",
   },
   {
     id: "couple",
@@ -1309,7 +1309,7 @@ export const SPACES: SpaceMeta[] = [
     tagline: "an ocean apart",
     preview: "47 days to SFO",
     showcase: "two time zones · clocks, countdowns, color together",
-    inboxAddress: "ustwo@agentmail.to",
+    inboxAddress: "us-two@mail.hubblespace.app",
   },
   {
     id: "buildroom",
@@ -1322,7 +1322,7 @@ export const SPACES: SpaceMeta[] = [
     tagline: "drop it, argue it, keep it",
     preview: "47 links · 3 hot",
     showcase: "link pile · ships, roundtables, hot takes",
-    inboxAddress: "buildroom@agentmail.to",
+    inboxAddress: "build-room@mail.hubblespace.app",
   },
   {
     id: "family",

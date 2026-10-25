@@ -20,7 +20,7 @@ const now = Date.now();
 const ago = (ms) => now - ms;
 const inDays = (d) => now + d * DAY;
 
-const MANAGED_SLUGS = /^(smoke-test|the-crew|the-build-room)/;
+const MANAGED_SLUGS = /^(smoke-test.*|the-crew|the-build-room|crew|buildroom)$/;
 const RELATED = [
   "Member", "Message", "Widget", "ChoiceVote", "AiWrite", "PendingWrite",
   "Deal", "Presence", "Brief", "Recap", "EmailEvent", "AskStream", "Lease",
@@ -107,11 +107,28 @@ function crewMessages(spaceId, decisionWidgetId) {
   ];
 }
 
+/* Polls are created first so the Vote rows below can point at their real
+ * ids — live mode rebuilds tallies from Vote rows (mergePollRows), not from
+ * the voters baked into card data. The options' voters arrays stay anyway:
+ * they're the mock-mode rendering path and a sane fallback. */
+const CREW_POLLS = (spaceId) => [
+  widget(spaceId, { type: "poll", x: 546, y: 122, w: 244, h: 234, z: 4, rotate: 1.3, agoMs: 2 * DAY + 18 * HOUR, by: "Maya", data: { question: "cake flavor?", options: [{ id: "a", label: "matcha", votes: 3, total: 5, voters: ["Maya", "Jules", "Sam"] }, { id: "b", label: "chocolate", votes: 1, total: 5, voters: ["Kenji"] }, { id: "c", label: "tres leches", votes: 1, total: 5, voters: ["Rio"] }], waitingOn: ["Ash"] } }),
+  widget(spaceId, { type: "poll", x: 1392, y: 60, w: 200, h: 170, z: 3, rotate: -1, agoMs: 2 * DAY + 6 * HOUR, by: "Rio", data: { question: "where we ate last sat?", options: [{ id: "a", label: "sam's place", votes: 4, total: 6, voters: ["Maya", "Jules", "Sam", "Kenji"] }, { id: "b", label: "tacos on 4th", votes: 2, total: 6, voters: ["Rio", "Ash"] }] } }),
+  widget(spaceId, { type: "poll", x: 1392, y: 290, w: 200, h: 170, z: 3, rotate: 1, agoMs: 2 * DAY + 2 * HOUR, by: "Kenji", data: { question: "friday dinner?", options: [{ id: "a", label: "ramen on 3rd", votes: 3, total: 5, voters: ["Maya", "Rio", "Kenji"] }, { id: "b", label: "sam's place", votes: 2, total: 5, voters: ["Jules", "Sam"] }] } }),
+];
+
+/* vote rows: [pollIndex, optionId, memberNames] — userIds match the Member
+ * seed convention seed:<name lowercase>. */
+const CREW_VOTES = [
+  [0, "a", ["Maya", "Jules", "Sam"]], [0, "b", ["Kenji"]], [0, "c", ["Rio"]],
+  [1, "a", ["Maya", "Jules", "Sam", "Kenji"]], [1, "b", ["Rio", "Ash"]],
+  [2, "a", ["Maya", "Rio", "Kenji"]], [2, "b", ["Jules", "Sam"]],
+];
+
 function crewWidgets(spaceId) {
   return [
     widget(spaceId, { type: "frame", x: 352, y: 48, w: 688, h: 560, z: 0, agoMs: 2 * DAY + 21 * HOUR, data: { title: "Maya's bday", subtitle: "party HQ", deco: "party" } }),
     widget(spaceId, { type: "countdown", x: 372, y: 106, w: 186, h: 262, z: 2, rotate: -1.8, agoMs: 2 * DAY + 20 * HOUR, by: "Sam", data: { event: "maya's bday 🎂", targetDate: new Date(inDays(6)).toISOString().slice(0, 10), startDate: new Date(ago(5 * DAY)).toISOString().slice(0, 10), hyped: ["Maya", "Jules", "Sam", "Kenji"] } }),
-    widget(spaceId, { type: "poll", x: 546, y: 122, w: 244, h: 234, z: 4, rotate: 1.3, agoMs: 2 * DAY + 18 * HOUR, by: "Maya", data: { question: "cake flavor?", options: [{ id: "a", label: "matcha", votes: 3, total: 5, voters: ["Maya", "Jules", "Sam"] }, { id: "b", label: "chocolate", votes: 1, total: 5, voters: ["Kenji"] }, { id: "c", label: "tres leches", votes: 1, total: 5, voters: ["Rio"] }], waitingOn: ["Ash"] } }),
     widget(spaceId, { type: "rsvp", x: 814, y: 90, w: 196, h: 250, z: 3, rotate: -1.2, agoMs: 2 * DAY + 17 * HOUR, by: "Jules", data: { title: "who's coming", responses: [{ name: "Maya", status: "yes" }, { name: "Jules", status: "yes" }, { name: "Sam", status: "yes" }, { name: "Kenji", status: "yes" }, { name: "Ash", status: "no" }], waitingOn: ["Rio"], waitingNote: "might be late, save me cake" } }),
     widget(spaceId, { type: "potluck", x: 378, y: 372, w: 392, h: 158, z: 2, rotate: 0.9, agoMs: 2 * DAY + 19 * HOUR, by: "Jules", data: { title: "who's bringing what", kicker: "party prep", tone: "violet", openCount: 2, items: [{ name: "balloons", by: "Jules", claimed: true }, { name: "playlist", by: null, claimed: false }, { name: "sparkling water", by: "Sam", claimed: true }, { name: "candles", by: null, claimed: false }] } }),
     widget(spaceId, { type: "messageWall", x: 806, y: 354, w: 234, h: 248, z: 2, agoMs: 1 * DAY + 22 * HOUR, by: "Jules", data: { title: "birthday messages", messages: [{ from: "Jules", text: "happy almost-bday queen 👑" }, { from: "Kenji", text: "can't wait to celebrate u" }, { from: "Ash", text: "matcha cake or riot" }] } }),
@@ -122,8 +139,6 @@ function crewWidgets(spaceId) {
     widget(spaceId, { type: "note", x: 352, y: 640, w: 260, h: 125, z: 2, agoMs: 15 * HOUR, by: "Kenji", data: { text: "summer shortlist: portland / joshua tree / nowhere", author: "Kenji", tone: "white", kicker: "summer maybe?" } }),
     widget(spaceId, { type: "frame", x: 952, y: 700, w: 430, h: 272, z: 1, agoMs: 1 * DAY + 18 * HOUR, by: "Kenji", data: { title: "japan trip", subtitle: "forward bookings here ✉" } }),
     widget(spaceId, { type: "itinerary", x: 986, y: 748, w: 300, h: 200, z: 2, rotate: 1, agoMs: 1 * DAY + 17 * HOUR, by: "Kenji", data: { title: `japan · ${new Date(inDays(32)).toLocaleDateString("en-US", { month: "short", day: "numeric" })} trip`, days: [{ day: new Date(inDays(32)).toLocaleDateString("en-US", { month: "short", day: "numeric" }), plan: "land HND · ramen night" }, { day: new Date(inDays(34)).toLocaleDateString("en-US", { month: "short", day: "numeric" }), plan: "kyoto day trip" }, { day: new Date(inDays(37)).toLocaleDateString("en-US", { month: "short", day: "numeric" }), plan: "??? — forward the booking" }] } }),
-    widget(spaceId, { type: "poll", x: 1392, y: 60, w: 200, h: 170, z: 3, rotate: -1, agoMs: 2 * DAY + 6 * HOUR, by: "Rio", data: { question: "where we ate last sat?", options: [{ id: "a", label: "sam's place", votes: 4, total: 6, voters: ["Maya", "Jules", "Sam", "Kenji"] }, { id: "b", label: "tacos on 4th", votes: 2, total: 6, voters: ["Rio", "Ash"] }] } }),
-    widget(spaceId, { type: "poll", x: 1392, y: 290, w: 200, h: 170, z: 3, rotate: 1, agoMs: 2 * DAY + 2 * HOUR, by: "Kenji", data: { question: "friday dinner?", options: [{ id: "a", label: "ramen on 3rd", votes: 3, total: 5, voters: ["Maya", "Rio", "Kenji"] }, { id: "b", label: "sam's place", votes: 2, total: 5, voters: ["Jules", "Sam"] }] } }),
     widget(spaceId, { type: "linkShelf", x: 1064, y: 344, w: 290, h: 145, z: 3, agoMs: 1 * DAY + 12 * HOUR, by: "Maya", data: { title: "saved links", tone: "violet", links: [{ label: "matcha cake recipe", url: "bonappetit.com", by: "Maya" }, { label: "sam's place (maps)", url: "maps.google.com", by: "Sam" }, { label: "party playlist", url: "open.spotify.com", by: "Jules" }] } }),
   ];
 }
@@ -236,26 +251,31 @@ function buildRoomWidgets(spaceId) {
 async function seed() {
   const crewId = (await retry(() => base44.entities.Space.create({
     name: "the crew", type: "ongoing", icon: "✦", color: "#e9369d",
-    slug: "the-crew", tagline: "your people, in one place",
+    slug: "crew", tagline: "your people, in one place",
     createdAt: ago(3 * DAY), lastActivityAt: ago(2 * HOUR),
   }), "Space.create")).id;
 
   const decision = (await bulk("Widget", [widget(crewId, DECISION_WIDGET)]))[0];
+  const polls = await bulk("Widget", CREW_POLLS(crewId));
+  await bulk("Vote", CREW_VOTES.flatMap(([pi, optionId, names]) =>
+    names.map((name) => ({ spaceId: crewId, widgetId: polls[pi].id, optionId, userId: `seed:${name.toLowerCase()}` })),
+  ));
   await bulk("Member", CREW.map((m, i) => member(crewId, m, [2 * HOUR, 1 * HOUR, 40 * 60000, 9 * HOUR, 3 * HOUR, 20 * HOUR][i])));
   await bulk("Widget", crewWidgets(crewId));
   await bulk("Message", crewMessages(crewId, decision.id));
-  console.log(`seeded "the crew" → ${crewId} (#/space/the-crew)`);
+  console.log(`seeded "the crew" → ${crewId} (#/space/crew)`);
 
   const roomId = (await retry(() => base44.entities.Space.create({
     name: "the build room", type: "ongoing", icon: "</>", color: "#ff7c42",
-    slug: "the-build-room", tagline: "seven engineers, one reading list",
+    slug: "buildroom", tagline: "seven engineers, one reading list",
+    canvasW: 2048, canvasH: 1016,
     createdAt: ago(3 * DAY), lastActivityAt: ago(8 * HOUR),
   }), "Space.create")).id;
 
   await bulk("Member", BUILDERS.map((m, i) => member(roomId, m, [1 * HOUR, 3 * HOUR, 30 * 60000, 5 * HOUR, 8 * HOUR, 2 * HOUR, 26 * HOUR][i])));
   await bulk("Widget", buildRoomWidgets(roomId));
   await bulk("Message", buildRoomMessages(roomId));
-  console.log(`seeded "the build room" → ${roomId} (#/space/the-build-room)`);
+  console.log(`seeded "the build room" → ${roomId} (#/space/buildroom)`);
 }
 
 await wipe();

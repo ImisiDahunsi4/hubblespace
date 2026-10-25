@@ -8,6 +8,8 @@ import { registerQueryImpl } from "../store";
 import { getIdentity } from "../../../live/identity";
 import { base44 } from "../client";
 import { peersRows, onPeers } from "../roomChannel";
+import { isIn, scoreRows } from "../../../lib/games/engine";
+import { LOCKS, seeState } from "../../../lib/answerToSee";
 
 function jparse<T>(s: unknown, fallback: T): T {
   try {
@@ -64,6 +66,17 @@ registerQueryImpl(
 
 /** "can visitors make their own space" — HubbleSpace is open. */
 registerQueryImpl("spaces.roomsOpen", entityQuery([], async () => true));
+
+/** Every space on the deployment — the rail uses it to know which fixture
+ * rooms actually exist live (dead slugs get disabled tiles, not a
+ * "no space at this link" dead end). */
+registerQueryImpl(
+  "spaces.listAll",
+  entityQuery(["Space"], async () =>
+    withIds(await ent("Space").filter({}, undefined, 200))
+      .sort((a: any, b: any) => (b.lastActivityAt ?? 0) - (a.lastActivityAt ?? 0)),
+  ),
+);
 
 /* ---------------- messages ---------------- */
 
@@ -383,23 +396,130 @@ registerQueryImpl(
 
 /* ---------------- games (P2 — honest empty room until ported) ---------------- */
 
+/* Ported from convex/games.ts `forRoom`: the week's loaded games (players +
+   rounds + answers merged into each game doc, hidden picks redacted the same
+   way), the scoreboard rows they imply, and the caller's seat. The flat
+   contract matters — LiveSpace reads g.players / g.rounds unconditionally
+   once a game exists. */
+const sameName = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
+function weekStart(now: number): number {
+  const d = new Date(now);
+  d.setUTCHours(16, 0, 0, 0); // sun 9:00 pacific, near enough
+  d.setUTCDate(d.getUTCDate() - d.getUTCDay());
+  return d.getTime() > now ? d.getTime() - 7 * 86_400_000 : d.getTime();
+}
+
+async function loadGame(doc: any) {
+  const [players, rounds, answers] = await Promise.all([
+    ent("GamePlayer").filter({ gameId: doc.id }, undefined, 40),
+    ent("GameRound").filter({ gameId: doc.id }, undefined, 12),
+    ent("GameAnswer").filter({ gameId: doc.id }, undefined, 400),
+  ]);
+  return {
+    id: doc.id,
+    room: String(doc.spaceId),
+    kind: doc.kind,
+    name: doc.name,
+    startedBy: { name: doc.startedBy?.name ?? "", color: doc.startedBy?.color ?? "" },
+    startedAt: doc.startedAt,
+    phase: doc.phase,
+    round: doc.round,
+    phaseEndsAt: doc.phaseEndsAt,
+    players: players.map((p: any) => ({
+      name: p.name, color: p.color, joinedAt: p.joinedAt, fromRound: p.fromRound,
+    })),
+    cast: doc.cast ?? [],
+    rounds: rounds.map((r: any) => ({
+      n: r.n,
+      prompt: r.prompt,
+      answers: answers
+        .filter((a: any) => a.n === r.n)
+        .map((a: any) => ({ by: a.by, pick: a.pick, at: a.at })),
+      endsAt: r.endsAt,
+      revealedAt: r.revealedAt,
+      winners: r.winners,
+      ...(r.asks ? { asks: jparse(r.asks, []) } : {}),
+      ...(r.reactions ? { reactions: r.reactions } : {}),
+      ...(r.ready?.length ? { ready: r.ready } : {}),
+    })),
+    ...(doc.seat ? { seat: doc.seat } : {}),
+    ...(doc.seatWhy ? { seatWhy: doc.seatWhy } : {}),
+    ...(doc.known !== undefined ? { known: doc.known } : {}),
+  };
+}
+
+function redactGame(game: any, me: string | null) {
+  return {
+    ...game,
+    rounds: game.rounds.map((r: any) => {
+      const facts = {
+        mine: false, answered: r.answers.length,
+        of: game.players.length, now: 0,
+        resolved: r.revealedAt !== undefined,
+      };
+      const answersOpen = seeState(LOCKS.round, facts).open;
+      const rightOpen = seeState(LOCKS.rightAnswer, facts).open;
+      return {
+        ...r,
+        answers: answersOpen
+          ? r.answers
+          : r.answers.map((a: any) => (me && sameName(a.by, me) ? a : { ...a, pick: "" })),
+        ...(r.asks
+          ? { asks: rightOpen ? r.asks : r.asks.map((q: any) => (me && sameName(q.about, me) ? q : { ...q, right: "" })) }
+          : {}),
+      };
+    }),
+  };
+}
+
 registerQueryImpl(
   "games.forRoom",
-  entityQuery(["Game", "GameRound", "GamePlayer", "Award"], async ({ spaceId, userId }) => {
-    const rows = await ent("Game").filter({ spaceId }, byNewest, 1);
-    const game = rows[0] ?? null;
-    if (!game) return { game: null, rows: [], awards: [], me: null, played: false };
-    const [players, awards] = await Promise.all([
-      ent("GamePlayer").filter({ gameId: game.id }),
-      ent("Award").filter({ gameId: game.id }),
+  entityQuery(["Game", "GameRound", "GamePlayer", "GameAnswer", "Award", "Member"], async ({ spaceId, userId }) => {
+    const now = Date.now();
+    const recent = (await ent("Game").filter({ spaceId }, byNewest, 12))
+      .filter((g: any) => g.kind !== "jigsaw");
+    const week = recent.filter((g: any) => g.startedAt >= weekStart(now));
+    const loaded = await Promise.all(week.map(loadGame));
+    const [memberRows, awardRows] = await Promise.all([
+      ent("Member").filter({ spaceId }),
+      ent("Award").filter({ spaceId }, undefined, 100),
     ]);
-    const me = players.find((p: any) => p.userId === userId) ?? null;
+    const cast = memberRows.map((m: any) => ({ name: m.name, color: m.color }));
+    const rows = scoreRows({ cast, seed: {}, seedAwards: [], games: loaded });
+    const awards = awardRows
+      .filter((a: any) => (a.at ?? 0) >= weekStart(now))
+      .map((a: any, i: number) => ({
+        id: String(a.id), room: String(spaceId), gameId: String(a.gameId),
+        to: a.to, title: a.title, glyph: a.glyph, prompt: a.prompt,
+        tone: a.tone ?? i % 6, at: a.at,
+      }));
+    for (const row of rows) row.awards = awards.filter((a: any) => sameName(a.to, row.name));
+
+    const latest = recent[0];
+    const seat = memberRows.find((m: any) => m.userId === userId) ?? null;
+    const me = seat ? { userId: seat.userId, name: seat.name, color: seat.color, guest: true } : null;
+    const meIn = me && latest
+      ? (() => {
+          const players = loaded.find((g) => g.id === latest.id)?.players ?? [];
+          const mine = players.find((p: any) => p.userId === me.userId);
+          if (mine) return { ...me, name: mine.name };
+          const twins = players.filter(
+            (p: any) => sameName(p.name, me.name) || sameName(p.name.replace(/ \d+$/, ""), me.name),
+          ).length;
+          return twins ? { ...me, name: `${me.name} ${twins + 1}` } : me;
+        })()
+      : me;
+    const game = latest ? loaded.find((g) => g.id === latest.id) ?? await loadGame(latest) : null;
     return {
-      game: withId(game),
-      rows: withIds(players),
-      awards: withIds(awards),
-      me: me ? { name: me.name, color: me.color, guest: true } : null,
-      played: Boolean(me),
+      game: game ? redactGame(game, meIn?.name ?? null) : null,
+      rows,
+      awards,
+      me: meIn,
+      played: Boolean(
+        me && loaded.some((g) => isIn(g, me.name) && g.rounds.some((r: any) => r.revealedAt !== undefined)),
+      ),
     };
   }),
 );
@@ -407,14 +527,56 @@ registerQueryImpl(
 registerQueryImpl("games.challenge", entityQuery([], async () => null));
 registerQueryImpl("games.offer", entityQuery([], async () => []));
 
+/* Shape contract is flat (convex/puzzles.ts forRoom): the room's jigsaw as
+ * { id, phase, photo, pieces, startedAt, startedBy, helper, players, rows }
+ * or null — never a { game } wrapper. useLiveJigsaw reads data.players
+ * unconditionally once data is non-null. */
 registerQueryImpl(
   "puzzles.forRoom",
-  entityQuery(["Game", "PuzzlePiece"], async ({ spaceId }) => {
-    const rows = await ent("Game").filter({ spaceId, kind: "jigsaw" }, byNewest, 1);
-    const game = rows[0] ?? null;
-    if (!game) return { game: null, pieces: [] };
-    const pieces = await ent("PuzzlePiece").filter({ gameId: game.id });
-    return { game: withId(game), pieces: withIds(pieces) };
+  entityQuery(["Game", "GamePlayer", "PuzzlePiece", "Lease", "PendingWrite"], async ({ spaceId }) => {
+    const games = await ent("Game").filter({ spaceId, kind: "jigsaw" }, byNewest, 1);
+    const game = games[0] ?? null;
+    if (!game) return null;
+    const [pieces, players, leases, pending] = await Promise.all([
+      ent("PuzzlePiece").filter({ gameId: game.id }, undefined, 64),
+      ent("GamePlayer").filter({ gameId: game.id }, undefined, 40),
+      ent("Lease").filter({ spaceId }),
+      ent("PendingWrite").filter({ spaceId }),
+    ]);
+    const prefix = `piece:${game.id}:`;
+    const held = leases.filter(
+      (l: any) => typeof l.thing === "string" && l.thing.startsWith(prefix) && l.letGoAt === undefined,
+    );
+    const holderOf = (i: number) =>
+      held.find((l: any) => l.thing === `${prefix}${i}`);
+    const waiting = pending.filter(
+      (p: any) => typeof p.thing === "string" && p.thing.startsWith(prefix),
+    );
+    return {
+      id: game.id,
+      phase: game.phase,
+      photo: game.photo ?? "friday",
+      pieces: game.known ?? 20,
+      startedAt: game.startedAt,
+      startedBy: { name: game.startedBy?.name ?? "", color: game.startedBy?.color ?? "" },
+      helper: waiting.length
+        ? {
+            piece: Number(waiting[0].thing.split(":")[2]),
+            on: (() => {
+              try { return JSON.parse(waiting[0].on).name; } catch { return ""; }
+            })(),
+          }
+        : null,
+      players: players.map((p: any) => ({ name: p.name, color: p.color, userId: p.userId })),
+      rows: pieces.map((r: any) => {
+        const h = holderOf(r.i);
+        return {
+          i: r.i, x: r.x, y: r.y, placed: r.placed,
+          by: r.by ?? null, holder: h?.name ?? null,
+          holderId: h?.userId ?? null, until: h?.until ?? 0,
+        };
+      }),
+    };
   }),
 );
 

@@ -5,8 +5,8 @@ recording stays in sync. All spaces are live data — reset anytime with
 `node scripts/seed-demo.mjs`.
 
 - Live URL: `https://hubblespace-c2adbd10.base44.app`
-- Space A: `#/space/the-crew` — six friends, Maya's birthday week
-- Space B: `#/space/the-build-room` — seven engineers, a shared reading pile
+- Space A: `#/space/crew` — six friends, Maya's birthday week
+- Space B: `#/space/buildroom` — seven engineers, a shared reading pile
 
 ---
 
@@ -23,7 +23,7 @@ actually yours.
 
 ## Act 1 — what it is (0:12–0:40)
 
-**On screen:** `#/space/the-crew` — pan the canvas slowly. Land on the
+**On screen:** `#/space/crew` — pan the canvas slowly. Land on the
 birthday frame: countdown, cake poll, RSVP, potluck.
 
 [00:00:12] Whether it's planning something or just staying in each other's
@@ -43,7 +43,7 @@ Long distance? You can sit and color together anyway.
 
 ## Act 2 — it keeps up when you're away (0:40–1:00)
 
-**On screen:** still `the-crew`. Hover the message wall, then the itinerary
+**On screen:** still `crew`. Hover the message wall, then the itinerary
 frame ("japan trip").
 
 [00:00:40] Every space has its own address too — you can email it anything.
@@ -53,7 +53,7 @@ not four hundred messages.
 
 ## Act 3 — the receipt story (1:00–1:20)
 
-**On screen:** `the-crew`, scroll right to the **"cake receipt"** expense
+**On screen:** `crew`, scroll right to the **"cake receipt"** expense
 card. Chat thread on screen shows Maya's message: *"forwarded the cake
 receipt to the space's email and it just... made a card."*
 
@@ -68,7 +68,7 @@ they all land on the board.
 
 ## Act 4 — promoted decisions (1:20–1:35, new beat)
 
-**On screen:** `the-crew` chat — Jules's message *"6pm at sam's place
+**On screen:** `crew` chat — Jules's message *"6pm at sam's place
 friday — locked"* and the lime **"decision made"** card beside it.
 
 [00:01:20] And when the chat finally agrees on something, it doesn't have
@@ -78,7 +78,7 @@ place" — pinned where nobody can miss it.
 
 ## Act 5 — the build room (1:35–2:10)
 
-**On screen:** `#/space/the-build-room` — the pile (three link cards
+**On screen:** `#/space/buildroom` — the pile (three link cards
 fanned out), hot-now list, keeper notes, shipping wall, roundtable.
 
 [00:01:35] And then there's my other space — the build room. Seven of us,
@@ -97,7 +97,7 @@ for the long threads.
 
 ## Act 6 — why it works + sign-off (2:10–2:40)
 
-**On screen:** back to `#/space/the-crew`, slow zoom out; then `#/outro`
+**On screen:** back to `#/space/crew`, slow zoom out; then `#/outro`
 end card (new mark, "hubblespace", "live now · no signup").
 
 [00:02:10] The whole thing is one live surface — she can color on her

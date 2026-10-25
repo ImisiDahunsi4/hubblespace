@@ -54,6 +54,7 @@ export interface QueryResults {
   "roomPresence.onlineForSpace": { total?: number; others?: number; [k: string]: any };
   "spaces.getBySlug": any;
   "spaces.getSpaceWithWidgets": { space?: any; widgets: any[]; [k: string]: any };
+  "spaces.listAll": any[];
   "spaces.listMine": any[];
   "spaces.roomsOpen": boolean;
   "stats.getHereNow": number;
