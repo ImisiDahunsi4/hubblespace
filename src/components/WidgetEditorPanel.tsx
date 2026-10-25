@@ -843,7 +843,7 @@ export function WidgetEditorPanel({
                   placeholder="https://example.com/article"
                   autoFocus
                 />
-                <small>We’ll pull the title, summary, and cover with Firecrawl.</small>
+                <small>We’ll pull the title, summary, and cover automatically.</small>
               </label>
               <div className="widget-editor-link-recipe" aria-hidden="true">
                 <span>link</span>

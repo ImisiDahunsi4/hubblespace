@@ -145,12 +145,8 @@ const ColorLab = lazy(() =>
 const MailReel = lazy(() =>
   import("./pages/MailReel").then((module) => ({ default: module.MailReel })),
 );
-const CodexReel = lazy(() =>
-  import("./pages/CodexReel").then((module) => ({ default: module.CodexReel })),
-);
-const FirecrawlReel = lazy(() =>
-  import("./pages/FirecrawlReel").then((module) => ({ default: module.FirecrawlReel })),
-);
+
+
 const Outro = lazy(() =>
   import("./pages/Outro").then((module) => ({ default: module.Outro })),
 );
@@ -179,7 +175,7 @@ function DeferredRoute({ children }: { children: ReactNode }) {
   );
 }
 
-type Route = "space" | "me" | "about" | "cursors" | "widgets" | "arrival" | "color" | "bothways" | "outro" | "codex" | "firecrawl" | "wall" | "live" | "join" | "test" | "admin";
+type Route = "space" | "me" | "about" | "cursors" | "widgets" | "arrival" | "color" | "bothways" | "outro" | "wall" | "live" | "join" | "test" | "admin";
 type WidgetPlacement = Partial<Pick<Widget, "x" | "y" | "z" | "w" | "h">>;
 type FrameLayout = Pick<Widget, "x" | "y" | "w" | "h">;
 type CanvasSize = { width: number; height: number };
@@ -294,8 +290,6 @@ function routeFromHash(): Route {
   if (hash === "color") return "color";
   if (hash === "bothways") return "bothways";
   if (hash === "outro") return "outro";
-  if (hash === "codex") return "codex";
-  if (hash === "firecrawl") return "firecrawl";
   if (hash === "wall") return "wall";
   // Linked from nowhere and gated on ADMIN_KEY server-side (convex/admin.ts).
   if (hash === "admin") return "admin";
@@ -2064,13 +2058,7 @@ export default function App() {
     return <DeferredRoute><Outro /></DeferredRoute>;
   }
 
-  if (route === "codex") {
-    return <DeferredRoute><CodexReel /></DeferredRoute>;
-  }
 
-  if (route === "firecrawl") {
-    return <DeferredRoute><FirecrawlReel /></DeferredRoute>;
-  }
 
   if (route === "wall") {
     return <DeferredRoute><WidgetWall /></DeferredRoute>;

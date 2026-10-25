@@ -8,18 +8,67 @@
 import { base44 } from "../client";
 import type { QueryImpl } from "../store";
 
-export function ent<T = any>(name: string) {
-  return base44.entities[name] as {
-    list(sort?: string, limit?: number, skip?: number): Promise<T[]>;
-    filter(query: Record<string, any>, sort?: string, limit?: number, skip?: number): Promise<T[]>;
-    get(id: string): Promise<T>;
-    create(data: Partial<T>): Promise<T>;
-    update(id: string, data: Partial<T>): Promise<T>;
-    delete(id: string): Promise<{ success: boolean }>;
-    deleteMany(query: Partial<T>): Promise<{ deleted: number }>;
-    bulkCreate(data: Partial<T>[]): Promise<T[]>;
-    updateMany(query: Partial<T>, data: Record<string, any>): Promise<{ updated: number; has_more: boolean }>;
-    subscribe(cb: (event: { type: string; data: T }) => void): () => void;
+type EntityApi<T> = {
+  list(sort?: string, limit?: number, skip?: number): Promise<T[]>;
+  filter(query: Record<string, any>, sort?: string, limit?: number, skip?: number): Promise<T[]>;
+  get(id: string): Promise<T>;
+  create(data: Partial<T>): Promise<T>;
+  update(id: string, data: Partial<T>): Promise<T>;
+  delete(id: string): Promise<{ success: boolean }>;
+  deleteMany(query: Partial<T>): Promise<{ deleted: number }>;
+  bulkCreate(data: Partial<T>[]): Promise<T[]>;
+  updateMany(query: Partial<T>, data: Record<string, any>): Promise<{ updated: number; has_more: boolean }>;
+  subscribe(cb: (event: { type: string; data: T }) => void): () => void;
+};
+
+/** Anonymous traffic shares a 70-req/min pool per app — honor Retry-After
+ * instead of leaving the board on skeletons forever. */
+function retryAfterMs(err: any): number | null {
+  if (err?.status !== 429) return null;
+  const msg = String(err?.data?.message ?? err?.message ?? "");
+  const match = /Retry after (\d+)s/i.exec(msg);
+  return (match ? Number(match[1]) * 1000 : 15_000) + 500;
+}
+
+async function withRetry<T>(fn: () => Promise<T>, attempt = 0): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    const wait = retryAfterMs(err);
+    if (wait === null || attempt >= 4) throw err;
+    await new Promise((r) => setTimeout(r, wait));
+    return withRetry(fn, attempt + 1);
+  }
+}
+
+/** Anonymous reads share one 70-req/min pool per app+IP. Every watched query
+ * refires on each entity event, and several queries read the same rows — so
+ * identical reads inside a 2s window share one request. */
+const readCache = new Map<string, { at: number; promise: Promise<any> }>();
+const READ_TTL_MS = 2000;
+
+function cachedRead<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const hit = readCache.get(key);
+  if (hit && Date.now() - hit.at < READ_TTL_MS) return hit.promise;
+  const promise = fn();
+  readCache.set(key, { at: Date.now(), promise });
+  promise.catch(() => readCache.delete(key));
+  return promise;
+}
+
+export function ent<T = any>(name: string): EntityApi<T> {
+  const api = base44.entities[name] as EntityApi<T>;
+  return {
+    ...api,
+    list: (...a) => cachedRead(`l:${name}:${JSON.stringify(a)}`, () => withRetry(() => api.list(...a))),
+    filter: (...a) => cachedRead(`f:${name}:${JSON.stringify(a)}`, () => withRetry(() => api.filter(...a))),
+    get: (id) => cachedRead(`g:${name}:${id}`, () => withRetry(() => api.get(id))),
+    create: (d) => withRetry(() => api.create(d)),
+    update: (id, d) => withRetry(() => api.update(id, d)),
+    delete: (id) => withRetry(() => api.delete(id)),
+    deleteMany: (q) => withRetry(() => api.deleteMany(q)),
+    bulkCreate: (d) => withRetry(() => api.bulkCreate(d)),
+    updateMany: (q, d) => withRetry(() => api.updateMany(q, d)),
   };
 }
 
@@ -90,6 +139,7 @@ export function entityQuery(
         if (!cancelled) emit(value);
       } catch (err) {
         console.error("[hubble] query failed", err);
+        if (!cancelled) setTimeout(run, 20_000);
       } finally {
         running = false;
         if (dirty && !cancelled) {
@@ -100,10 +150,18 @@ export function entityQuery(
     };
     void run();
     const names = typeof watches === "function" ? watches(args) : watches;
+    // Coalesce a burst of entity events into one re-produce — a join or a
+    // heartbeat otherwise fans out into N redundant reads at once.
+    let queued: number | null = null;
+    const schedule = () => {
+      if (cancelled || queued !== null) return;
+      queued = window.setTimeout(() => {
+        queued = null;
+        void run();
+      }, 250);
+    };
     const unsubs = [...new Set(names)].map((name) =>
-      ent(name).subscribe(() => {
-        if (!cancelled) void run();
-      }),
+      ent(name).subscribe(schedule),
     );
     return () => {
       cancelled = true;

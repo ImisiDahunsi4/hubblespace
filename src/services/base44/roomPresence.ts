@@ -9,6 +9,7 @@
  */
 import { useEffect } from "react";
 import { ent } from "./impl/entities";
+import { getIdentity } from "../../live/identity";
 
 export function useRoomPresence(
   _api: unknown,
@@ -33,9 +34,17 @@ export function useRoomPresence(
           rowId = rows[0].id;
           await ent("Presence").update(rows[0].id, { updatedAt: Date.now() });
         } else {
+          // Presence requires x, y, name, color — NO_POINTER + the tab's identity.
+          const me = getIdentity();
           const row = await ent("Presence").create({
             spaceId: roomId,
             userId,
+            x: -1,
+            y: -1,
+            name: me.name,
+            color: me.color,
+            emoji: me.emoji,
+            avatarUrl: me.avatarUrl,
             updatedAt: Date.now(),
           });
           if (!cancelled) rowId = row.id;

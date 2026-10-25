@@ -88,9 +88,16 @@ function makeRef(name: string): QueryRef {
 // the ref itself. We make each proxy node ALSO a ref of its own path, so
 // api.spaces.getSpaceWithWidgets is { name:"spaces.getSpaceWithWidgets" }
 // while api.spaces can still be traversed.
+const proxyCache = new Map<string, QueryRef>();
+
+/** The proxy identity must be stable — a fresh Proxy per `api.x.y` access
+ * makes useQuery's subscribe callback change every render, which cancels and
+ * restarts the entity fetch in a loop (rate-limit storm + render thrash). */
 function refProxy(path: string): QueryRef {
+  const cached = proxyCache.get(path);
+  if (cached) return cached;
   const ref = makeRef(path);
-  return new Proxy(ref as any, {
+  const proxy = new Proxy(ref as any, {
     get(_t, prop: string | symbol) {
       if (typeof prop !== "string") return (ref as any)[prop];
       if (prop === "name") return path;
@@ -98,6 +105,8 @@ function refProxy(path: string): QueryRef {
       return refProxy(`${path}.${prop}`);
     },
   });
+  proxyCache.set(path, proxy);
+  return proxy;
 }
 
 /**

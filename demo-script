@@ -1,0 +1,53 @@
+[00:00:00] Remember MySpace? We used to spend all night making our pages perfect and now
+[00:00:04] it's just ads and strangers.
+[00:00:06] And your top friends? Well, they're a wall of group chats.
+[00:00:08] So good luck keeping up with that.
+[00:00:10] I'm Holly. And I'm Thomas.
+[00:00:12] And our solution is OurSpaces.
+[00:00:14] Whether it's for planning stuff or staying connected with each other,
+[00:00:17] we've been just goofing around together.
+[00:00:19] It's all there. With over 30 widgets to help you keep up to date with everyone.
+[00:00:23] Using widgets, you can make space that really fits to your group's needs.
+[00:00:27] And it's as simple as dragging a widget to the page.
+[00:00:30] And as I add these widgets, it's shown automatically for other users instantly.
+[00:00:35] And nothing here refreshes.
+[00:00:37] It's always live. You can see who's on the space right now and their cursors
+[00:00:40] moving. Whether you're long distance, you can do an activity like coloring
+[00:00:44] together. It's got an address too, and you can email it anything.
+[00:00:48] I sent it an email letter from across the ocean and it landed as an envelope and
+[00:00:52] she opened it. Or if you're gone for a week, you can still stay up to date when
+[00:00:56] it summarizes everything up for you.
+[00:00:57] Okay, this is a scenario where OurSpaces has helped us.
+[00:01:00] I paid for the cake, dropped the receipt in our group chat,
+[00:01:03] and nobody has still paid me back.
+[00:01:05] But fortunately, I can use the space.
+[00:01:06] It has its own email, so I forward it and that's it.
+[00:01:09] Okay, but who's paying me back?
+[00:01:12] Oh, it wrote back.
+[00:01:13] $21 each and everyone sees it.
+[00:01:16] So every space has their own email.
+[00:01:18] Members can email for functionalities.
+[00:01:21] And then I have a space for my hacker friends.
+[00:01:24] And this one is nuts. It's seven of us, all engineers,
+[00:01:27] a tight-knit group where we swap Hacker News threads and blog posts to keep
+[00:01:31] learning. So we built this to keep track.
+[00:01:33] Someone drops a link, Firecrawl fetches the whole article and boils it down to a
+[00:01:37] summary. Then OpenAI leaves two discussion questions under it.
+[00:01:41] So we actually talk about it. When we're done discussing the paper,
+[00:01:44] the one key takeaway gets pinned on the space and that one stays.
+[00:01:48] And here's the nerd part.
+[00:01:50] It all runs on Convex. That's why she can color on her phone and I can see it on
+[00:01:53] my laptop the same second.
+[00:01:55] It's built from 17 of their components.
+[00:01:57] The receipt and the letter, both came in through AgentMail and the reply went
+[00:02:00] out the same way. Shout out to AgentMail for making this all really simple.
+[00:02:05] Remember the build room, all those articles piling up?
+[00:02:08] Firecrawl did all the reading.
+[00:02:09] Every website's built different and we didn't want to write a reader for each
+[00:02:12] one. Firecrawl really saved us a lot of time here.
+[00:02:15] And the crazy thing is, Codex wrote every line, but it wasn't a one-shot prompt.
+[00:02:20] It was 26 days of the two of us carefully hand-holding to get the right look and
+[00:02:26] feel. I'm Thomas. She's Holly.
+[00:02:27] We built this for our friends first, then figured yours might want one too.
+[00:02:31] App's live and there's no signup, so go put something on the space.
+[00:02:35] Thank you.

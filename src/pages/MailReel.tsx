@@ -55,8 +55,8 @@ export function MailReel() {
         {/* the address, dead centre */}
         <div className="reel-at" style={at(960, 570)}>
           <div className="reel-sticker">
-            <em>✉</em>hubblespace@agentmail.to
-            <span className="reel-pill">AGENTMAIL</span>
+            <em>✉</em>the-crew@mail.hubblespace.app
+            <span className="reel-pill">SPACE MAIL</span>
           </div>
         </div>
 

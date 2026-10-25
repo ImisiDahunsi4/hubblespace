@@ -140,7 +140,7 @@ export function DemoBanner({ onJoinWaitlist, onMakeSpace, pending = false }: { o
             {view === "notice" ? (
               <div className="demo-waitlist-body" data-testid="demo-welcome-notice">
                 <h2>You're in<br /><em>the demo.</em></h2>
-                <p>Built for a hackathon. Open for a look around.</p>
+                <p>A little preview. Open for a look around.</p>
                 <p className="demo-notice-detail">This is a test version of HubbleSpace, so it isn't ready for everyday use yet.</p>
                 <button className="demo-waitlist-submit" onClick={() => dialog.current?.close()} data-testid="demo-notice-explore">Explore the demo <span>↗</span></button>
                 <div className="demo-notice-waitlist">

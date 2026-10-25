@@ -53,9 +53,9 @@ export function Outro() {
           <b>hubblespace</b>
         </div>
 
-        <div className="outro-pill is-thomas">built by Thomas</div>
-        <div className="outro-pill is-holly">designed by Holly</div>
-        <div className="outro-hack">adapted from OurSpaces · Base44 Challenge entry</div>
+        <div className="outro-pill is-thomas">made by friends</div>
+        <div className="outro-pill is-holly">for friends</div>
+        <div className="outro-hack">a Base44 app</div>
         <h1 className="outro-url">hubblespace</h1>
         <div className="outro-pill is-live">live now<small>no signup</small></div>
 
@@ -74,11 +74,11 @@ export function Outro() {
 
         <div className="outro-cursor" style={{ "--c": "var(--color-crew)", "--path": "outro-cursor-a" } as CSSProperties}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2 L20 12 L12 13 L9 21 Z" /></svg>
-          <span>thomas</span>
+          <span>maya</span>
         </div>
         <div className="outro-cursor" style={{ "--c": "var(--color-couple)", "--path": "outro-cursor-b" } as CSSProperties}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2 L20 12 L12 13 L9 21 Z" /></svg>
-          <span>holly</span>
+          <span>sam</span>
         </div>
       </div>
 
