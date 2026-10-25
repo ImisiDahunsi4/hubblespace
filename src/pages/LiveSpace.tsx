@@ -288,7 +288,7 @@ const DEFAULT_THREAD_DOCK_SIZE: ThreadDockSize = {
   width: 680,
   height: 540,
 };
-const CLAIM_DISMISSED_KEY = "ourspaces:claim-dismissed";
+const CLAIM_DISMISSED_KEY = "hubblespace:claim-dismissed";
 /** The door opening: the header enters and the room becomes yours at SETTLE,
  *  the card + scrim are gone at LEAVE. Card collapse is 440ms, scrim lift 500ms,
  *  the cursor hands over to the OS arrow from 400ms to 620ms. */
@@ -1754,7 +1754,7 @@ export function LiveSpacePage({
   const cardCount = widgets.length;
   const startedEmpty = useRef<boolean | null>(null);
   if (startedEmpty.current === null && status !== "loading" && space) startedEmpty.current = cardCount === 0;
-  const [inviteClosed, setInviteClosed] = useState(() => sessionStorage.getItem(`ourspaces:invite-nudge:${slug}`) === "closed");
+  const [inviteClosed, setInviteClosed] = useState(() => sessionStorage.getItem(`hubblespace:invite-nudge:${slug}`) === "closed");
   const aloneHere = (hereCount ?? 1) <= 1 && (roomKnows?.people.length ?? 1) <= 1;
   // `?newroom=first` shows the first-card nudge as it lands (takes; features/new-space.md)
   const nudgeTake = new URLSearchParams(window.location.search).get("newroom") === "first";
@@ -3377,7 +3377,7 @@ export function LiveSpacePage({
           slug={slug}
           first={nudgeTake || (startedEmpty.current === true && cardCount === 1)}
           onClose={() => {
-            sessionStorage.setItem(`ourspaces:invite-nudge:${slug}`, "closed");
+            sessionStorage.setItem(`hubblespace:invite-nudge:${slug}`, "closed");
             setInviteClosed(true);
           }}
         />

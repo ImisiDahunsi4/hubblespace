@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const WELCOME_KEY = "ourspaces:welcome-dismissed";
+const WELCOME_KEY = "hubblespace:welcome-dismissed";
 
 function wasDismissed() {
   if (typeof window === "undefined") return false;

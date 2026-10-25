@@ -20,7 +20,7 @@ const LONG_SLEEP_MS = 5 * 60_000;
 const SETTLE_MS = 8_000;
 const DOWN_RELOAD_MS = 2 * 60_000;
 const RELOAD_GAP_MS = 2 * 60_000;
-const RELOADED_AT = "ourspaces-standalone-reloaded-at";
+const RELOADED_AT = "hubblespace-standalone-reloaded-at";
 
 export function isStandalone(): boolean {
   return (

@@ -1,6 +1,6 @@
 # Cursor styles
 
-Presence cursors are a core part of OurSpaces. Styles live here so we can
+Presence cursors are a core part of HubbleSpace. Styles live here so we can
 prototype many looks without touching the space canvas.
 
 ## Add a new style

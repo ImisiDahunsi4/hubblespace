@@ -1,6 +1,6 @@
 #!/bin/sh
 # The dev lane: the dusty-condor-648 Convex deployment plus a Netlify preview
-# alias. Nothing here touches ourspaces.io or the prod database.
+# alias. Nothing here touches the production site or the prod database.
 #
 #   ./scripts/dev-lane.sh backend      push convex/ to the dev deployment
 #   ./scripts/dev-lane.sh web [args]   vite against the dev deployment

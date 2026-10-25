@@ -26,7 +26,7 @@ export function inviteUrlForSpace(slug: string) {
 
 /** About remembers the room you came from. A cold link returns to the
  *  crew at its explicit `#/space/crew` address. */
-const LAST_SPACE_KEY = "ourspaces:last-space";
+const LAST_SPACE_KEY = "hubblespace:last-space";
 
 export function rememberSpaceSlug(slug: string) {
   try {

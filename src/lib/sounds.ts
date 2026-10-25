@@ -2,7 +2,7 @@ export type UiSound = "tap" | "place" | "promote";
 
 /** Sound design + how to add cues: see public/sounds/README.md */
 
-const SOUND_ENABLED_KEY = "ourspaces:sound-enabled";
+const SOUND_ENABLED_KEY = "hubblespace:sound-enabled";
 
 const SOUND_FILES: Record<UiSound, string> = {
   tap: "/sounds/tap.mp3",

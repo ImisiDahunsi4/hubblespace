@@ -49,14 +49,14 @@ export function Outro() {
     <main className="outro">
       <div className="outro-stage" key={take} style={{ "--s": scale } as CSSProperties}>
         <div className="outro-logo">
-          <i><img src="/assets/ourspace-mark.png" alt="" /></i>
-          <b>ourspaces</b>
+          <i><img src="/assets/hubblespace-mark.png" alt="" /></i>
+          <b>hubblespace</b>
         </div>
 
         <div className="outro-pill is-thomas">built by Thomas</div>
         <div className="outro-pill is-holly">designed by Holly</div>
-        <div className="outro-hack">our entry · Convex All Gas hackathon</div>
-        <h1 className="outro-url">ourspaces<span>.io</span></h1>
+        <div className="outro-hack">adapted from OurSpaces · Base44 Challenge entry</div>
+        <h1 className="outro-url">hubblespace</h1>
         <div className="outro-pill is-live">live now<small>no signup</small></div>
 
         {spaces.map((space, i) => (

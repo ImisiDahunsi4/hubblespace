@@ -80,7 +80,7 @@ export function ColorLab() {
         <div className="color-lab-laptop">
           <div className="color-lab-laptop-bar">
             <i /><i /><i />
-            <span>us two · ourspaces</span>
+            <span>us two · hubblespace</span>
           </div>
           <div className="color-lab-screen">
             <iframe

@@ -17,7 +17,7 @@ import "./labs.css";
  * two taps.
  */
 
-const KEY_STORAGE = "ourspaces:admin-key";
+const KEY_STORAGE = "hubblespace:admin-key";
 
 function readStoredKey() {
   try {
@@ -58,7 +58,7 @@ export function Admin() {
   const setDoor = useMutation(api.admin.setDoor);
 
   useEffect(() => {
-    document.title = "back room · ourspaces";
+    document.title = "back room · hubblespace";
   }, []);
 
   useEffect(() => {

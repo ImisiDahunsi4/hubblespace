@@ -164,11 +164,11 @@ export function Rail({
       <a
         className="rail-brand"
         href="#/about"
-        title="about ourspaces"
-        aria-label="About OurSpaces"
+        title="about hubblespace"
+        aria-label="About HubbleSpace"
         onClick={rememberCurrentSpace}
       >
-        <img src="/assets/ourspace-mark.png" alt="ourspaces" />
+        <img src="/assets/hubblespace-mark.png" alt="hubblespace" />
       </a>
 
       <div className="space-list">

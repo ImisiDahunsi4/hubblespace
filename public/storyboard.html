@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OurSpaces · the video, on paper</title>
+<title>HubbleSpace · the video, on paper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -174,7 +174,7 @@
 <div class="page">
 
   <header class="top" style="--accent: var(--lime)">
-    <p class="eyebrow"><span class="dot"></span> OurSpaces · demo video · storyboard · v5.13</p>
+    <p class="eyebrow"><span class="dot"></span> HubbleSpace · demo video · storyboard · v5.13</p>
     <h1>The video,<br />on <span class="hl">paper.</span></h1>
     <p class="sub">Every beat: what's on screen, what the shot is, and what gets said. Read it top to bottom and you've watched the video.</p>
     <div class="chips">
@@ -259,7 +259,7 @@ function screen(spec) {
     [14,24,34,44,54,64,74].forEach(t => { const q = el('div','r'); q.style.top=t+'%'; r.appendChild(q); });
     const w = el('div','w','components · 17'); w.style.left='58%'; w.style.top='8%'; r.appendChild(w);
   }
-  if (spec.kind === 'url') r.appendChild(el('div','u', spec.text || 'ourspaces.io'));
+  if (spec.kind === 'url') r.appendChild(el('div','u', spec.text || 'hubblespace'));
   (spec.widgets || []).forEach(([txt,l,t]) => { const w = el('div','w',txt); w.style.left=l+'%'; w.style.top=t+'%'; r.appendChild(w); });
   (spec.cursors || []).forEach(([l,t]) => { const c = el('div','cursor'); c.style.left=l+'%'; c.style.top=t+'%'; r.appendChild(c); });
   return r;
@@ -332,7 +332,7 @@ const beats = [
     frame: { type: 'split', top: { kind: 'space', bg: 'var(--mail)', label: 'the crew · alive', widgets: [['⏳ 12 days',8,26],['cake? ▮▮▮▯',46,44],['potluck',12,66]], cursors: [[80,30]] }, bottom: { label: 'Holly', holly: true } }, 
     see: ['The screen swaps to the crew space, already alive: a second cursor mid-drag, the countdown ticking.', 'The lower-third pops on the name. Music starts. Full screen from 0:11.'],
     cue: 'Line one said “MySpace.” This line answers it. The name is said once, clearly.',
-    lines: [{ who: 'holly', t: '0:10', say: 'So we made OurSpaces.' }] },
+    lines: [{ who: 'holly', t: '0:10', say: 'So we made OurSpaces — now HubbleSpace.' }] },
   { act: 0, t: '0:11', dur: '8s', shot: 'Full-screen laptop recording',
     frame: { type: 'screen', screen: { kind: 'space', bg: 'var(--mail)', label: 'the crew · picker drops', widgets: [['cake? matcha / choc',46,12],['⏳ countdown',8,20],['potluck · 1 slot left',10,58],['🎡 wheel',62,52],['🎨 coloring',40,76]], cursors: [[30,44]] } },
     see: ['Five drops from the picker, one placement sound each. The cake poll first, matcha or chocolate. Then countdown, potluck sheet, wheel, coloring page.'],
@@ -428,7 +428,7 @@ const beats = [
     cue: 'Reuse the arrival capture from 1:41, the card-fill seconds only. “Forty-seven” is whatever the pile says on shoot day.',
     lines: [{ who: 'thomas', t: '2:37', say: 'Every one of those forty-seven links went through Firecrawl, and a queue rereads the old ones so the cards don’t rot.' }] },
   { act: 2, t: '2:44', dur: '15s', shot: 'Outro · one end card (#/outro)',
-    frame: { type: 'screen', screen: { kind: 'space', bg: 'var(--ink)', label: 'ourspaces · the sign-off', widgets: [['built by Thomas',6,12],['designed by Holly',6,30],['our entry · Convex All Gas hackathon',6,48],['ourspaces.io · live now · no signup',6,66],['bring cake.',58,80]] }, pills: ['THE FIVE SPACES'] },
+    frame: { type: 'screen', screen: { kind: 'space', bg: 'var(--ink)', label: 'hubblespace · the sign-off', widgets: [['built by Thomas',6,12],['designed by Holly',6,30],['originally entered in the Convex All Gas hackathon',6,48],['hubblespace · live soon · no signup',6,66],['bring cake.',58,80]] }, pills: ['THE FIVE SPACES'] },
     see: ['One end card that builds on the words: the logo lands, "built by Thomas" pops on his name, "designed by Holly" on hers, the five spaces cascade in on "the whole thing", the hackathon pill on "hackathon", "live now · no signup", then the URL big on "go put something on the space". Two cursors wander the cards. Her pink "bring cake." sticker pops on her line. Hold on it, music out at 2:59.'],
     cue: 'No camera needed: the card is the sign-off (scene-15-outro, 15s). If the desk shot gets made, cut it in over the first five seconds and let the card take over from "our entry". The last word is still hers.',
     lines: [{ who: 'thomas', t: '2:44', say: 'I’m Thomas. I built this with my wife, Holly. She designed the whole thing.' }, { who: 'thomas', t: '2:49', say: 'It’s our entry for the Convex hackathon, and we’re really happy with it. It’s live, there’s no signup, so go put something on the space.' }, { who: 'holly', t: '2:56', say: 'Bring cake.' }, { who: 'silent', t: '2:59', say: 'no line — end' }] },

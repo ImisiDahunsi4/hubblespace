@@ -37,8 +37,8 @@ export const IDENTITY_EMOJIS = [
   "✨",
 ] as const;
 
-const SESSION_KEY = "ourspaces:tab-identity";
-const SEQUENCE_KEY = "ourspaces:persona-sequence";
+const SESSION_KEY = "hubblespace:tab-identity";
+const SEQUENCE_KEY = "hubblespace:persona-sequence";
 export const PERSONA_NAMES = [
   "juno",
   "momo",
@@ -192,7 +192,7 @@ export function isPersonaName(name: string) {
   return (PERSONA_NAMES as readonly string[]).includes(name.trim().toLowerCase());
 }
 
-const TAB_KEY = "ourspaces:tab-id";
+const TAB_KEY = "hubblespace:tab-id";
 let tabId: string | null = null;
 
 /**

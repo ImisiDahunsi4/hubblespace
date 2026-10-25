@@ -11,7 +11,7 @@ export type SpaceSnapshot = {
 };
 
 function storageKey(slug: string) {
-  return `ourspaces:snapshot:v1:${slug}`;
+  return `hubblespace:snapshot:v1:${slug}`;
 }
 
 function isSnapshot(value: unknown): value is SpaceSnapshot {

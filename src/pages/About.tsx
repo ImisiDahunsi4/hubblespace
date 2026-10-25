@@ -7,6 +7,8 @@ import { getSpace } from "../data/spaces";
 import { getDataMode } from "../live/dataMode";
 import { lastSpaceSlug, normalSpaceHash } from "../lib/routes";
 
+// The original MIT-licensed project this app is adapted from — code links on
+// this page point at the upstream implementation they describe.
 const REPO_URL = "https://github.com/thomasnguyen/ourspaces-app";
 const CAKE_POLL = getSpace("crew").widgets.find((widget) => widget.id === "poll-cake")!;
 
@@ -58,7 +60,7 @@ function LiveTotals() {
   if (!totals) return null;
   return (
     <div className="about-live">
-      <span className="about-live-label"><i /> across ourspaces, right now</span>
+      <span className="about-live-label"><i /> across hubblespace, right now</span>
       <dl>
         {[
           ["spaces", totals.spaces],
@@ -120,8 +122,8 @@ function AboutOverview() {
     <main className="about-page">
       <nav className="about-bar about-wrap">
         <a className="about-brand" href="#/about">
-          <img src="/assets/ourspace-mark.png" alt="" />
-          <span>ourspaces</span>
+          <img src="/assets/hubblespace-mark.png" alt="" />
+          <span>hubblespace</span>
           <small>about</small>
         </a>
         <a className="about-back" href={backHash}><span>←</span> back to the space</a>
@@ -214,7 +216,7 @@ function AboutOverview() {
 
       <footer className="about-footer about-wrap">
         <div className="about-footer-invite"><h2>There’s room for you.</h2><a className="about-button" href="#/space/crew">come on in <span>↗</span></a></div>
-        <div className="about-footer-meta"><a className="about-brand" href="#/about"><img src="/assets/ourspace-mark.png" alt="" /><span>ourspaces</span></a><span>group chats forget. spaces remember.</span><a href={REPO_URL} target="_blank" rel="noreferrer">made in the open ↗</a><a href="https://nebiusglobalaihackathon.devpost.com/" target="_blank" rel="noreferrer">built for the Nebius × NVIDIA hackathon ↗</a></div>
+        <div className="about-footer-meta"><a className="about-brand" href="#/about"><img src="/assets/hubblespace-mark.png" alt="" /><span>hubblespace</span></a><span>say it. build it. share it.</span><a href={REPO_URL} target="_blank" rel="noreferrer">made in the open ↗</a><a href="https://nebiusglobalaihackathon.devpost.com/" target="_blank" rel="noreferrer">adapted from OurSpaces — originally built for the Nebius × NVIDIA hackathon ↗</a></div>
       </footer>
     </main>
   );
@@ -320,7 +322,7 @@ const VENDORS: VendorStory[] = [
       ["A local Convex component", "convex/components/agentMail wraps the inbox, send, reply, and label API calls. Its own tables hold incoming messages and webhook event IDs, keeping the email integration together.", "convex/components/agentMail/lib.ts"],
       ["Verified arrival, deduplicated event", "With a signing secret configured, the HTTP action checks the webhook signature before ingestion. The local component recognizes event IDs it has already recorded so a redelivery does not start the same processing again.", "convex/http.ts"],
       ["Documents, not signature logos", "The attachment path skips inline parts, checks supported document types and size, and limits parsing work per email. If attachment metadata is absent, it fetches the message before deciding there is nothing to read.", "convex/agentmail.ts"],
-      ["Email delivery is one part of auth", "The OTP provider generates the code and sends the OurSpaces email through AgentMail. The code lifetime is shared with the email copy; Convex Auth owns verification and sessions.", "convex/otp.ts"],
+      ["Email delivery is one part of auth", "The OTP provider generates the code and sends the HubbleSpace email through AgentMail. The code lifetime is shared with the email copy; Convex Auth owns verification and sessions.", "convex/otp.ts"],
     ],
   },
   {
@@ -363,7 +365,7 @@ function VendorExample({ vendor }: { vendor: VendorStory }) {
   const decision = DECISION_EXAMPLES[choice];
   return (
     <div className={`vendor-example vendor-example-${vendor.id}`}>
-      <div className="vendor-example-top"><span>interactive example</span><span>{vendor.name} × ourspaces</span></div>
+      <div className="vendor-example-top"><span>interactive example</span><span>{vendor.name} × hubblespace</span></div>
       {vendor.id === "convex" && <>
         <div className="vendor-twin-boards">
           {["your screen", "their screen"].map((label) => <div className="vendor-mini-board" key={label}>
@@ -406,7 +408,7 @@ function VendorPage({ vendor }: { vendor: VendorStory }) {
   return (
     <main className={`about-page vendor-page vendor-${vendor.id}`} style={{ "--vendor-color": `var(--color-${vendor.color})` } as CSSProperties}>
       <nav className="about-bar about-wrap">
-        <a className="about-brand" href="#/about"><img src="/assets/ourspace-mark.png" alt="" /><span>ourspaces</span><small>made with</small></a>
+        <a className="about-brand" href="#/about"><img src="/assets/hubblespace-mark.png" alt="" /><span>hubblespace</span><small>made with</small></a>
         <a className="about-back" href="#/about"><span>←</span> back to about</a>
       </nav>
       <nav className="vendor-nav about-wrap">{VENDORS.map((item) => <a key={item.id} href={`#/about/${item.id}`} className={item.id === vendor.id ? "is-selected" : ""} style={{ "--nav-color": `var(--color-${item.color})` } as CSSProperties}>{item.name}<span>↗</span></a>)}</nav>
@@ -419,11 +421,11 @@ function VendorPage({ vendor }: { vendor: VendorStory }) {
         <ol>{vendor.journey.map(([title, body, source], i) => <li key={title}><span className="vendor-step-number">{i + 1}</span><h3>{title}</h3><p>{body}</p><a href={`${REPO_URL}/blob/main/${source}`} target="_blank" rel="noreferrer">follow it in the code ↗</a></li>)}</ol>
       </section>
       <section className="vendor-capabilities about-wrap">
-        <div className="vendor-section-title"><span>{vendor.name} in OurSpaces</span><h2>Where it<br />shows up.</h2><p>Specific jobs in the app.<br />Each one has a place you can point to.</p></div>
+        <div className="vendor-section-title"><span>{vendor.name} in HubbleSpace</span><h2>Where it<br />shows up.</h2><p>Specific jobs in the app.<br />Each one has a place you can point to.</p></div>
         <div>{vendor.capabilities.map(([title, body, source]) => <article key={title}><h3>{title}</h3><p>{body}</p><a href={`${REPO_URL}/blob/main/${source}`} target="_blank" rel="noreferrer">see the implementation <span>↗</span></a></article>)}</div>
       </section>
       <section className="vendor-technical about-wrap"><div className="about-section-heading"><h2>A closer look.</h2><p>The choices behind the behavior.<br />Open whichever part you’re curious about.</p></div>{vendor.technical.map(([title, body, source]) => <details key={title} className="about-under-hood"><summary>{title}<span>+</span></summary><div className="about-tech"><p>{body}</p><a href={`${REPO_URL}/blob/main/${source}`} target="_blank" rel="noreferrer">{source} ↗</a></div></details>)}</section>
-      <footer className="vendor-footer about-wrap"><div><span>One part of a shared place.</span><h2>Meet the rest.</h2></div><a className="vendor-next" href={`#/about/${nextVendor.id}`} style={{ "--next-color": `var(--color-${nextVendor.color})` } as CSSProperties}><span>up next</span><strong>{nextVendor.name}</strong><span>↗</span></a><div className="vendor-footer-links"><a href="#/about">← the OurSpaces story</a><a href={normalSpaceHash(lastSpaceSlug())}>back to your space ↗</a><a href={REPO_URL} target="_blank" rel="noreferrer">made in the open ↗</a></div></footer>
+      <footer className="vendor-footer about-wrap"><div><span>One part of a shared place.</span><h2>Meet the rest.</h2></div><a className="vendor-next" href={`#/about/${nextVendor.id}`} style={{ "--next-color": `var(--color-${nextVendor.color})` } as CSSProperties}><span>up next</span><strong>{nextVendor.name}</strong><span>↗</span></a><div className="vendor-footer-links"><a href="#/about">← the HubbleSpace story</a><a href={normalSpaceHash(lastSpaceSlug())}>back to your space ↗</a><a href={REPO_URL} target="_blank" rel="noreferrer">made in the open ↗</a></div></footer>
     </main>
   );
 }

@@ -1,9 +1,9 @@
 {
   "id": "/",
-  "name": "OurSpaces",
-  "short_name": "OurSpaces",
-  "description": "Your people's live shared board. Talk to it and it makes the card.",
-  "start_url": "/?enter=1#/space/our-house",
+  "name": "HubbleSpace",
+  "short_name": "HubbleSpace",
+  "description": "Your shared space for turning ideas into action. Talk to it and it makes the card.",
+  "start_url": "/?enter=1#/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

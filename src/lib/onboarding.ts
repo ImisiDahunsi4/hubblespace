@@ -1,5 +1,5 @@
-const FIRST_RUN_KEY = "ourspaces:buildclub-first-run";
-const VISITOR_COUNT_KEY = "ourspaces:buildclub-visitors";
+const FIRST_RUN_KEY = "hubblespace:buildclub-first-run";
+const VISITOR_COUNT_KEY = "hubblespace:buildclub-visitors";
 const BASE_VISITORS = 312;
 
 let firstRunPending: boolean | null = null;

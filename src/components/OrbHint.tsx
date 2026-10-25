@@ -11,7 +11,7 @@ import "./orbHint.css";
  * `orb-hint-starter-0..2`, `orb-hint-dismiss`.
  */
 
-export const ORB_HINT_KEY = "ourspaces:orb-hint";
+export const ORB_HINT_KEY = "hubblespace:orb-hint";
 
 export const ORB_HINT_STARTERS = [
   "plan dinner saturday",

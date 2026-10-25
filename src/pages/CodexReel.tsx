@@ -100,7 +100,7 @@ export function CodexReel() {
         <div className="cx-kicker">
           <i />
           codex · the repo
-          <small>ourspaces-app</small>
+          <small>hubblespace-app</small>
         </div>
 
         <div className="cx-pill">OPENAI · CODEX</div>

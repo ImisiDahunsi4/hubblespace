@@ -74,7 +74,7 @@ const WAITS_ON: Record<string, string> = { poll: "the poll", availability: "the 
 export const BoardLinkContext = createContext<BoardLink>({ widgets: [] });
 
 /** "beat 40" on the standings opens the check-in's logger at 41. */
-const OPEN_LOG = "ourspaces:checkin-open";
+const OPEN_LOG = "hubblespace:checkin-open";
 type OpenLog = { source: string; value?: number };
 
 const param = (key: string) => new URLSearchParams(window.location.search).get(key);
