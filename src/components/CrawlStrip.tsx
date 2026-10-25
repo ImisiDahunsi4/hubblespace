@@ -1,5 +1,5 @@
-import { usePaginatedQuery, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { usePaginatedQuery, useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import { playSound } from "../lib/sounds";
 
 /** Live view of a Firecrawl durable crawl: pages stream in reactively via the

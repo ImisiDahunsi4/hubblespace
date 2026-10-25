@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useDeploymentUpdates } from "@convex-dev/static-hosting/react";
+import { useDeploymentUpdates } from "../services/base44/deploymentUpdates";
 import "./update-nudge.css";
 
 /**

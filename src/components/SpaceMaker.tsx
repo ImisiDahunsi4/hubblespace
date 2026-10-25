@@ -4,8 +4,8 @@ import type { SpaceTemplate, WidgetType } from "../data/types";
 import { useCreateSpace } from "../live/useCreateSpace";
 import { useAccount, useJoin } from "../live/useJoin";
 import { CodeSlots } from "./CodeSlots";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 
 /**
  * Pick a starting point, name it on the preview, then create.

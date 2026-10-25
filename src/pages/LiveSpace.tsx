@@ -6,11 +6,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAction, useConvex, useConvexConnectionState, useMutation } from "convex/react";
-import { useQuery, usePaginatedQuery } from "convex-helpers/react/cache";
-import { useStream } from "@convex-dev/persistent-text-streaming/react";
-import type { StreamId } from "@convex-dev/persistent-text-streaming";
-import { api } from "../../convex/_generated/api";
+import { useAction, useConvex, useConvexConnectionState, useMutation } from "../services/base44/shim";
+import { useQuery, usePaginatedQuery } from "../services/base44/shim";
+import { useStream } from "../services/base44/useStream";
+type StreamId = string;
+import { api } from "../services/base44/shim";
 import { Suspense, lazy } from "react";
 const PlayLab = lazy(() =>
   import("../components/PlayLab").then((module) => ({ default: module.PlayLab })),
@@ -18,7 +18,7 @@ const PlayLab = lazy(() =>
 /** The take room is a copy of the crew; theme, faces and canvas size are keyed
     by fixture id, so it borrows the crew's fixture (docs/local/play-lab.md). */
 const PLAY_LAB_SOURCE = "crew";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../services/base44/shim";
 import { ActionDock, radioRoomOf } from "../components/ActionDock";
 import { EditSlips, VoiceBuildLayer } from "../components/VoiceBuildLayer";
 import { LiveHeldBack, RowGhosts, RowHalos, settledLine, withGhosts, type RowGhost, type RowLease } from "../components/RightOfWay";
@@ -45,7 +45,7 @@ import { NewRoomInvite, NewRoomStart } from "../components/NewRoom";
 import { OrbHint, orbHintWanted } from "../components/OrbHint";
 import { MAKE_SPACE_EVENT } from "../components/DemoBanner";
 import { setNextVoiceScript } from "../lib/voice";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuthActions } from "../services/base44/authHooks";
 import { useAvatarUpload } from "../live/useAvatarUpload";
 import { GateCursor, type GatePoint } from "../components/GateCursor";
 import { OwnCursor, ownCursorWanted } from "../components/OwnCursor";
@@ -114,7 +114,8 @@ import { mergePollRows, type PollRow } from "../live/useLivePoll";
 import { useLiveSpace } from "../live/useLiveSpace";
 import { usePresence } from "../live/usePresence";
 import { useSpaceWork } from "../live/useSpaceWork";
-import useRoomPresence from "@convex-dev/presence/react";
+import useRoomPresence from "../services/base44/roomPresence";
+import { uploadFile } from "../services/base44/uploads";
 import { useShowAfter } from "../lib/entrance";
 import { freshWidgetData, getWidgetBlueprint } from "../lib/widgetDefaults";
 import { widgetLabel } from "../lib/widgetLabels";
@@ -152,13 +153,9 @@ const EMPTY_RECAP_LINES: RecapLine[] = [];
    routes under `/api` (httpPrefix in convex/convex.config.ts) so the static
    site can keep the root. The second argument keeps this from throwing if the
    env var is missing — mock mode imports this module but never streams. */
-const ASK_STREAM_URL = new URL(
-  `${
-    String(import.meta.env.VITE_CONVEX_SITE_URL ?? "") ||
-    String(import.meta.env.VITE_CONVEX_URL ?? "").replace(".convex.cloud", ".convex.site")
-  }/api/ask-stream`,
-  window.location.origin,
-);
+/* The driver invokes the deployed `askStream` function instead of fetching
+   an HTTP stream — the url arg of useStream is vestigial on Base44. */
+const ASK_STREAM_URL: null = null;
 
 /** How long the daily question's scribble-wipe reveal runs after you post. */
 const DAILY_REVEAL_MS = 1600;
@@ -504,9 +501,7 @@ export function LiveSpacePage({
   const [moreRight, setMoreRight] = useState(false);
 
   const join = useMutation(api.spaces.joinDemoSpace);
-  const generatePhotoUploadUrl = useMutation(api.photos.generateUploadUrl);
   const pinPhoto = useMutation(api.photos.addPhoto);
-  const shipImageUrl = useMutation(api.photos.storageUrl);
   const addPaintStroke = useMutation(api.paint.addStroke);
   const clearPaint = useMutation(api.paint.clear);
   const ensureCozyColorWidget = useMutation(api.paint.ensureCozyColorWidget);
@@ -1219,8 +1214,8 @@ export function LiveSpacePage({
       const existing = new Set(buildRoomLinks.map((link) => link.url));
       const batchKey = `search-${Date.now()}`;
       const fresh: BuildRoomLink[] = hits
-        .filter((hit) => !existing.has(hit.url))
-        .map((hit, index) => ({
+        .filter((hit: any) => !existing.has(hit.url))
+        .map((hit: any, index: number) => ({
           id: `${batchKey}-${index}`,
           url: hit.url,
           domain: hit.siteName || hit.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0],
@@ -1309,23 +1304,15 @@ export function LiveSpacePage({
     [adaptedWidgets, openRoom],
   );
 
-  /** Same two-step upload the memory wall uses: bytes to storage, url to data. */
+  /** One-call upload — Base44 file storage returns the hosted url directly. */
   const attachShipImage = useCallback(
     async (widgetId: string, file: File) => {
       const widget = widgets?.find((candidate) => candidate.id === widgetId);
       if (!widget) return;
-      const uploadUrl = await generatePhotoUploadUrl();
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type || "image/png" },
-        body: file,
-      });
-      if (!response.ok) throw new Error("ship image upload failed");
-      const { storageId } = (await response.json()) as { storageId: string };
-      const url = await shipImageUrl({ storageId: storageId as Id<"_storage"> });
-      if (url) handlers.onUpdate(widgetId, { ...widget.data, imageUrl: url });
+      const url = await uploadFile(file);
+      handlers.onUpdate(widgetId, { ...widget.data, imageUrl: url });
     },
-    [generatePhotoUploadUrl, handlers, shipImageUrl, widgets],
+    [handlers, widgets],
   );
 
   const closeRoom = useCallback(() => {
@@ -1369,23 +1356,16 @@ export function LiveSpacePage({
     async (file: File, caption: string) => {
       const widgetId = galleryWidgetIdRef.current;
       if (!widgetId) return;
-      const uploadUrl = await generatePhotoUploadUrl();
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type || "image/jpeg" },
-        body: file,
-      });
-      if (!response.ok) throw new Error("photo upload failed");
-      const { storageId } = (await response.json()) as { storageId: string };
+      const url = await uploadFile(file);
       await pinPhoto({
         widgetId: widgetId as Id<"widgets">,
         spaceId: space!._id,
-        storageId: storageId as Id<"_storage">,
+        url,
         caption,
         by: identity.name,
       });
     },
-    [generatePhotoUploadUrl, identity.name, pinPhoto],
+    [identity.name, pinPhoto, space],
   );
   const sendPhotoComment = useCallback((photoId: string, text: string) => {
     const widgetId = galleryWidgetIdRef.current;
@@ -1517,7 +1497,7 @@ export function LiveSpacePage({
           fromEmoji: message.authorEmoji,
           fromAvatarUrl: message.authorAvatarUrl,
           text:
-            typing?.messageId === message._id
+            typing && typing.messageId === message._id
               ? reduceMotion
                 ? askText
                 : askText.slice(0, typing.shown)

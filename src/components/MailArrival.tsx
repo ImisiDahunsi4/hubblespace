@@ -8,9 +8,9 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
+import type { Id } from "../services/base44/shim";
 import type { Widget } from "../data/types";
 import { flyEnvelopeTo } from "../lib/flipLanding";
 import {

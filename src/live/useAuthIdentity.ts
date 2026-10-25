@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react";
-import { api } from "../../convex/_generated/api";
+import { useMutation, useQuery } from "../services/base44/shim";
+import { useAuthActions, useConvexAuth } from "../services/base44/authHooks";
+import { api } from "../services/base44/shim";
 import { adoptAuthUserId, updateIdentity, useIdentity } from "./identity";
 
 /**

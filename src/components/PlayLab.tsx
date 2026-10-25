@@ -10,8 +10,8 @@
  * docs/local/play-lab.md has the shoot-day steps.
  */
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useMutation } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import type { Widget } from "../data/types";
 import "../pages/labs.css";
 

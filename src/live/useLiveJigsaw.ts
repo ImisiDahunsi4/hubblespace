@@ -5,10 +5,10 @@
  * moves go out as leased writes; a move is sent at most every 80 ms.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useMutation } from "../services/base44/shim";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
+import type { Id } from "../services/base44/shim";
 import { ROOM_JIGSAW } from "../data/jigsaw";
 import type { LocalMove, RemotePiece } from "../lib/jigsaw/engine";
 import { JIGSAW_WIDGET_ID, type JigsawApi, type JigsawOptions } from "../lib/jigsaw/useMockJigsaw";

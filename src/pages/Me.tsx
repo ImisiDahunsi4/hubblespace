@@ -1,6 +1,6 @@
-import { useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "../services/base44/shim";
+import { useAuthActions } from "../services/base44/authHooks";
+import { api } from "../services/base44/shim";
 import { SettingsBody } from "../components/SettingsSheet";
 import { JoinForm } from "../components/JoinForm";
 import { useAccount } from "../live/useJoin";

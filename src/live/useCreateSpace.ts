@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useMutation } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import type { SpaceTemplate } from "../data/types";
 import { createDemoWidget } from "../lib/widgetDefaults";
 import { getIdentity } from "./identity";

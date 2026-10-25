@@ -8,9 +8,9 @@
  * silent client loses it within 3 s.
  */
 import { useCallback, useEffect, useRef } from "react";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useMutation } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
+import type { Id } from "../services/base44/shim";
 
 type Kind = "drag" | "type" | "vote";
 const RENEW_EVERY_MS = 1_000;

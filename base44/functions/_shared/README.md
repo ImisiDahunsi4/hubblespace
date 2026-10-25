@@ -22,3 +22,11 @@ Copy these unchanged wherever possible:
 
 Keep filenames stable so `entry.ts` diffs stay reviewable. When the upstream
 file changes, re-vendor — do not fork the logic.
+
+## Deploy mechanics (learned the hard way)
+
+Base44 function bundles **cannot import outside their own directory** —
+`import ... from "../_shared/x.ts"` fails at bundle time. Run
+`functions/sync-shared.sh` before `base44 functions deploy`; it copies this
+directory into each function that needs it (`functions/*/_shared/` is
+gitignored). Edit only the canonical copies here.

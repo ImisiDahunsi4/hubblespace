@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import { useJoin } from "../live/useJoin";
 import { CodeSlots } from "./CodeSlots";
 

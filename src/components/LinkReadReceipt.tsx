@@ -1,5 +1,5 @@
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import type { LinkReceipt } from "../../convex/tavily";
 import { PicLine } from "./LookupReceipt";
 import "./lookup.css";

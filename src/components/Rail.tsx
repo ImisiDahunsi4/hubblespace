@@ -1,7 +1,7 @@
 import { DEFAULT_SPACE_SLUG, rememberSpaceSlug } from "../lib/routes";
 import { Fragment, type CSSProperties } from "react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import { getDataMode } from "../live/dataMode";
 import { getPresenceId } from "../live/identity";
 import { SPACES, SPACES_BY_ID } from "../data/spaces";

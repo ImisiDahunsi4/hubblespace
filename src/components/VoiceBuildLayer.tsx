@@ -16,7 +16,7 @@ function devMode() {
   const q = new URLSearchParams(window.location.search).get("timing");
   if (q === "1" || q === "table") return true;
   if (q === "0") return false;
-  return /dusty-condor/.test(import.meta.env.VITE_CONVEX_URL ?? "");
+  return import.meta.env.VITE_HUBBLE_TIMING === "1";
 }
 
 /** The ring in the maker's colour: on the card being built, following its

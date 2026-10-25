@@ -14,7 +14,9 @@
 
    Browser tabs run none of this. `?standalone=1` runs it in a tab (headless
    checks). */
-import type { ConvexReactClient } from "convex/react";
+type ConnectionProbe = {
+  connectionState(): { isWebSocketConnected: boolean };
+};
 
 const LONG_SLEEP_MS = 5 * 60_000;
 const SETTLE_MS = 8_000;
@@ -32,7 +34,7 @@ export function isStandalone(): boolean {
 type WakeLockSentinelish = { released: boolean; release(): Promise<void> };
 type WakeLockish = { request(type: "screen"): Promise<WakeLockSentinelish> };
 
-export function watchStandalone(client: ConvexReactClient) {
+export function watchStandalone(client: ConnectionProbe) {
   const params = new URLSearchParams(window.location.search);
   if (!isStandalone() && params.get("standalone") !== "1") return;
   document.documentElement.dataset.standalone = "1";

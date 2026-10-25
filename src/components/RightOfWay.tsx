@@ -8,9 +8,9 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
+import type { Id } from "../services/base44/shim";
 import { applyEdit, type EditOp } from "../lib/deck/edits";
 import { playSound } from "../lib/sounds";
 import { visitSources } from "./RoomKnows";

@@ -1,8 +1,5 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ConvexReactClient } from "convex/react";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 // the family board's layout; not imported from src/data/family.ts, which the Convex seed bundles
 import "./data/family.css";
 import App from "./App.tsx";
@@ -10,27 +7,32 @@ import { getDataMode } from "./live/dataMode.ts";
 import { AuthIdentityBridge } from "./live/useAuthIdentity.ts";
 import { UpdateNudge } from "./components/UpdateNudge.tsx";
 import { DemoBanner, MAKE_SPACE_EVENT } from "./components/DemoBanner.tsx";
-import { api } from "../convex/_generated/api";
-import { useQuery } from "convex/react";
+import { api, useQuery } from "./services/base44/shim";
+import { getMutationImpl } from "./services/base44/impl/calls";
+import { BASE44_APP_ID } from "./services/base44/client";
 import { watchStandalone } from "./lib/standalone.ts";
 import "./index.css";
 
-const url = import.meta.env.VITE_CONVEX_URL as string | undefined;
 const mode = getDataMode();
 
-const convexClient = url ? new ConvexReactClient(url) : null!;
-// the installed app (kitchen iPad): stay awake, reconnect after sleep (features/ipad.md)
-if (mode === "live" && url) watchStandalone(convexClient);
+/* The installed app (kitchen iPad): stay awake, reconnect after sleep
+   (features/ipad.md). The probe answers the watchdog's "is the line up" —
+   navigator.onLine plus the actor/entity stack's own reconnects. */
+const connectionProbe = {
+  connectionState: () => ({ isWebSocketConnected: navigator.onLine }),
+};
+if (mode === "live" && BASE44_APP_ID) watchStandalone(connectionProbe);
 
-function MissingConvexConfig() {
+function MissingBackendConfig() {
   return (
     <main className="convex-config-missing" data-data-mode="missing">
       <div>
         <span aria-hidden="true">✦</span>
-        <strong>Convex isn’t connected</strong>
+        <strong>HubbleSpace isn’t connected to its backend</strong>
         <p>
-          Copy <code>.env.local.example</code> to <code>.env.local</code>, then
-          run <code>npm run dev:backend</code> and <code>npm run dev</code>.
+          This build has no <code>VITE_BASE44_APP_ID</code>. Deploys from the
+          Base44 workspace inject it automatically; for local dev set it in
+          <code> .env.local</code> (see <code>.env.local.example</code>).
         </p>
         <small>
           Need the visual-only prototype? Add <code>?mock=1</code>.
@@ -40,17 +42,12 @@ function MissingConvexConfig() {
   );
 }
 
-/* The dev lane is known from the URL before the query answers, so its first
-   paint already says "make your own" (keep in step with convex/spaces.ts
-   `OPEN_ROOM_DEPLOYMENTS`). Anywhere else the strip waits for the answer. */
-const OPEN_LANE = /dusty-condor-648/.test(url ?? "");
-
-/** Live: the banner asks the deployment whether rooms are open (by lane, convex/spaces.ts `roomsOpen`). */
+/** Live: the banner asks the backend whether rooms are open. */
 function LiveDemoBanner() {
-  const open = useQuery(api.spaces.roomsOpen, {}) ?? (OPEN_LANE || undefined);
+  const open = useQuery(api.spaces.roomsOpen, {});
   return (
     <DemoBanner
-      onJoinWaitlist={(email) => convexClient.mutation(api.waitlist.join, { email })}
+      onJoinWaitlist={(email) => getMutationImpl("waitlist.join")({ email })}
       onMakeSpace={open ? () => window.dispatchEvent(new Event(MAKE_SPACE_EVENT)) : undefined}
       pending={open === undefined}
     />
@@ -59,26 +56,20 @@ function LiveDemoBanner() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {mode !== "live" || !url ? <DemoBanner /> : null}
-    {mode === "live" && url ? (
-      // Guests sign in silently from AuthIdentityBridge once this provider
-      // settles; the canvas renders either way (§1).
-      <ConvexAuthProvider client={convexClient}>
-        <ConvexQueryCacheProvider expiration={600_000}>
-          <AuthIdentityBridge />
-          <LiveDemoBanner />
-          <App />
-          {/* Live path only. UpdateNudge subscribes to the static-hosting
-              component's deployment row, and that hook needs a Convex client
-              in context — the mock branch below renders a bare <App/> with no
-              provider, so mounting it there would throw. */}
-          <UpdateNudge />
-        </ConvexQueryCacheProvider>
-      </ConvexAuthProvider>
+    {mode !== "live" || !BASE44_APP_ID ? <DemoBanner /> : null}
+    {mode === "live" && BASE44_APP_ID ? (
+      <>
+        {/* Guests stay local-only — Base44 has no anonymous sign-in, and the
+            canvas is never behind sign-in (§1). */}
+        <AuthIdentityBridge />
+        <LiveDemoBanner />
+        <App />
+        <UpdateNudge />
+      </>
     ) : mode === "mock" ? (
       <App />
     ) : (
-      <MissingConvexConfig />
+      <MissingBackendConfig />
     )}
   </StrictMode>,
 );

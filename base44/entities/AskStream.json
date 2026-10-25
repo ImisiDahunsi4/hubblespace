@@ -16,6 +16,16 @@
     "messageId": {
       "type": "string",
       "description": "Message.id of the recap turn to fill when done"
+    },
+    "body": {
+      "type": "string",
+      "description": "Streamed answer text, written in slices by the askStream function"
+    },
+    "done": {
+      "type": "boolean"
+    },
+    "error": {
+      "type": "string"
     }
   },
   "required": [

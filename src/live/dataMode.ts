@@ -15,5 +15,5 @@ export function explicitMockRequested() {
 
 export function getDataMode(): DataMode {
   if (explicitMockRequested()) return "mock";
-  return import.meta.env.VITE_CONVEX_URL ? "live" : "missing";
+  return import.meta.env.VITE_BASE44_APP_ID ? "live" : "missing";
 }

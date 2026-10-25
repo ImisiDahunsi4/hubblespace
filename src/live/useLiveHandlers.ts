@@ -1,8 +1,8 @@
-import { useAction, useMutation } from "convex/react";
-import type { OptimisticLocalStore } from "convex/browser";
+import { useAction, useMutation } from "../services/base44/shim";
+import type { OptimisticLocalStore } from "../services/base44/shim";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { api } from "../services/base44/shim";
+import type { Doc, Id } from "../services/base44/shim";
 import type { LiveIdentity } from "./identity";
 import { findPerson, readCheckIn, withLog } from "../lib/challenge";
 import type { PresenceController } from "./usePresence";
@@ -68,7 +68,7 @@ function patchWidgetBox(
     if (!value || value.space === null || value.space._id !== spaceId) continue;
     store.setQuery(api.spaces.getSpaceWithWidgets, args, {
       ...value,
-      widgets: value.widgets.map((widget) =>
+      widgets: (value.widgets as any[]).map((widget: any) =>
         widget._id === widgetId ? { ...widget, ...box } : widget,
       ),
     });
@@ -86,7 +86,7 @@ export function patchWidgetData(
     if (!value || value.space === null || value.space._id !== spaceId) continue;
     store.setQuery(api.spaces.getSpaceWithWidgets, args, {
       ...value,
-      widgets: value.widgets.map((widget) =>
+      widgets: (value.widgets as any[]).map((widget: any) =>
         widget._id === widgetId ? { ...widget, data: next(widget.data) } : widget,
       ),
     });
@@ -161,22 +161,22 @@ export function useLiveHandlers(
     () => voteMutation.withOptimisticUpdate(
       (store, { widgetId, spaceId, userId, optionId }) => {
         // the board reads every poll from votes.inSpace; patch that first
-        const room = store.getQuery(api.votes.inSpace, { spaceId });
+        const room = store.getQuery(api.votes.inSpace, { spaceId }) as any[] | undefined;
         if (room) {
-          const had = room.some((row) => row.widgetId === widgetId && row.userId === userId);
+          const had = room.some((row: any) => row.widgetId === widgetId && row.userId === userId);
           store.setQuery(api.votes.inSpace, { spaceId }, had
-            ? room.map((row) => (row.widgetId === widgetId && row.userId === userId ? { ...row, optionId } : row))
+            ? room.map((row: any) => (row.widgetId === widgetId && row.userId === userId ? { ...row, optionId } : row))
             : [...room, { widgetId, userId, optionId, voterName: "You" }]);
         }
         const args = { widgetId, spaceId };
-        const rows = store.getQuery(api.votes.getResults, args);
+        const rows = store.getQuery(api.votes.getResults, args) as any[] | undefined;
         if (!rows) return;
-        const mine = rows.find((row) => row.userId === userId);
+        const mine = rows.find((row: any) => row.userId === userId);
         store.setQuery(
           api.votes.getResults,
           args,
           mine
-            ? rows.map((row) => (row.userId === userId ? { ...row, optionId } : row))
+            ? rows.map((row: any) => (row.userId === userId ? { ...row, optionId } : row))
             : [
                 ...rows,
                 {

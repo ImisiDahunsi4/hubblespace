@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "../services/base44/shim";
 import {
   useCallback,
   useEffect,
@@ -7,7 +7,14 @@ import {
   useState,
 } from "react";
 import type { RefObject } from "react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../services/base44/shim";
+import {
+  cancelGesture as channelCancelGesture,
+  claimGesture as channelClaimGesture,
+  finishGesture as channelFinishGesture,
+  sendPresence,
+  updateGesture as channelUpdateGesture,
+} from "../services/base44/roomChannel";
 import { getPresenceId, type LiveIdentity } from "./identity";
 import { NO_POINTER } from "./presenceTypes";
 import type {
@@ -58,11 +65,9 @@ export function usePresence(
   pointerSurfaceRef: RefObject<HTMLElement | null>,
   canvasLayerRef: RefObject<HTMLElement | null>,
 ): PresenceController {
-  const heartbeatMutation = useMutation(api.presence.heartbeat);
-  const claimMutation = useMutation(api.presence.claimGesture);
-  const updateMutation = useMutation(api.presence.updateGesture);
-  const finishMutation = useMutation(api.presence.finishGesture);
-  const cancelMutation = useMutation(api.presence.cancelGesture);
+  /* The five presence mutations are actor messages now — the spaceRoom
+     session serializes claims/finishes exactly like the Convex mutation did,
+     and `listHereNow` is fed by the same session's peers broadcasts. */
   const rows = useQuery(
     api.presence.listHereNow,
     spaceId ? { spaceId: spaceId as never } : "skip",
@@ -133,14 +138,13 @@ export function usePresence(
       return;
     }
     lastHeartbeatSent.current = performance.now();
-    void heartbeatMutation({
-      spaceId: spaceId as never,
+    sendPresence(spaceId, {
       ...identity,
       userId: presenceId,
       ...(zoneName.current ? zonePoint.current : point.current),
       zone: zoneName.current,
     });
-  }, [clearHeartbeatTimer, heartbeatMutation, identity, presenceId, spaceId]);
+  }, [clearHeartbeatTimer, identity, presenceId, spaceId]);
 
   const queueHeartbeat = useCallback(() => {
     if (!spaceId || document.hidden || activeSessionId.current) return;
@@ -175,12 +179,12 @@ export function usePresence(
     }
     pendingGesture.current = null;
     lastGestureSent.current = performance.now();
-    void updateMutation({
+    channelUpdateGesture(spaceId, {
       ...mutationIdentity(),
       ...gesture,
       widgetId: gesture.widgetId as never,
     });
-  }, [clearGestureTimer, mutationIdentity, spaceId, updateMutation]);
+  }, [clearGestureTimer, mutationIdentity, spaceId]);
 
   const queueGestureUpdate = useCallback(
     (gesture: GestureInput) => {
@@ -339,8 +343,8 @@ export function usePresence(
       clearGestureTimer();
       const sessionId = activeSessionId.current;
       if (spaceId && sessionId) {
-        void cancelMutation({
-          spaceId: spaceId as never,
+        void channelCancelGesture(spaceId, {
+          spaceId,
           userId: presenceId,
           sessionId,
         });
@@ -350,7 +354,7 @@ export function usePresence(
       pendingGesture.current = null;
       latestGesture.current = null;
     },
-    [cancelMutation, clearGestureTimer, clearHeartbeatTimer, presenceId, spaceId],
+    [clearGestureTimer, clearHeartbeatTimer, presenceId, spaceId],
   );
 
   const claimGesture = useCallback(
@@ -362,11 +366,11 @@ export function usePresence(
       gestureClaimed.current = false;
       pendingGesture.current = gesture;
       latestGesture.current = gesture;
-      const result = (await claimMutation({
+      const result = ((await channelClaimGesture(spaceId, {
         ...mutationIdentity(),
         ...gesture,
         widgetId: gesture.widgetId as never,
-      })) as GestureClaim;
+      })) ?? { accepted: false, reason: "missing" }) as GestureClaim;
       if (result.accepted && activeSessionId.current === gesture.sessionId) {
         gestureClaimed.current = true;
       }
@@ -380,7 +384,6 @@ export function usePresence(
       return result;
     },
     [
-      claimMutation,
       clearGestureTimer,
       clearHeartbeatTimer,
       mutationIdentity,
@@ -407,11 +410,12 @@ export function usePresence(
       let committed = false;
       for (let attempt = 0; attempt < 2 && !committed; attempt += 1) {
         try {
-          committed = await finishMutation({
-            ...mutationIdentity(),
-            ...gesture,
-            widgetId: gesture.widgetId as never,
-          });
+          committed =
+            (await channelFinishGesture(spaceId, {
+              ...mutationIdentity(),
+              ...gesture,
+              widgetId: gesture.widgetId as never,
+            })) === true;
         } catch {
           if (attempt === 1) committed = false;
         }
@@ -428,7 +432,6 @@ export function usePresence(
     },
     [
       clearGestureTimer,
-      finishMutation,
       mutationIdentity,
       queueHeartbeat,
       spaceId,
@@ -443,11 +446,12 @@ export function usePresence(
       if (latestGesture.current?.sessionId === sessionId) {
         latestGesture.current = null;
       }
-      const cancelled = await cancelMutation({
-        spaceId: spaceId as never,
-        userId: presenceId,
-        sessionId,
-      });
+      const cancelled =
+        (await channelCancelGesture(spaceId, {
+          spaceId,
+          userId: presenceId,
+          sessionId,
+        })) === true;
       if (activeSessionId.current === sessionId) {
         activeSessionId.current = null;
         gestureClaimed.current = false;
@@ -456,7 +460,6 @@ export function usePresence(
       return cancelled;
     },
     [
-      cancelMutation,
       clearGestureTimer,
       presenceId,
       queueHeartbeat,

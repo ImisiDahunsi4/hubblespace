@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useAuthActions } from "../services/base44/authHooks";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 
 /**
  * "Join" — the emailed six-digit code (convex/otp.ts). Two steps, one card:

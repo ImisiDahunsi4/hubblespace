@@ -9,10 +9,10 @@
  * on you" (yourTurn's `game` item) and no strip.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useConvex, useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { useConvex, useMutation } from "../services/base44/shim";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
+import type { Id } from "../services/base44/shim";
 import type { Award, Game, ScoreRow } from "../lib/games/types";
 import { isIn } from "../lib/games/engine";
 import { keepsakeOf, seatName } from "../lib/games/hotSeat";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useMutation, useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import { DEFAULT_SPACE_SLUG, normalSpaceHash } from "../lib/routes";
 import "./labs.css";
 
@@ -79,7 +79,7 @@ export function Admin() {
       if (kind === "all") {
         const out = await resetAll({ key });
         setNote(
-          `Every room is back: ${out.rooms.length} rooms, ${out.rooms.reduce((n, r) => n + r.widgets, 0)} widgets, ${out.rooms.reduce((n, r) => n + r.messages, 0)} messages. Cleared ${out.cleared} things visitors left.${out.skipped.length ? ` Skipped (no baseline): ${out.skipped.join(", ")}.` : ""}`,
+          `Every room is back: ${out.rooms.length} rooms, ${out.rooms.reduce((n: any, r: any) => n + r.widgets, 0)} widgets, ${out.rooms.reduce((n: any, r: any) => n + r.messages, 0)} messages. Cleared ${out.cleared} things visitors left.${out.skipped.length ? ` Skipped (no baseline): ${out.skipped.join(", ")}.` : ""}`,
         );
       } else if (kind === "reset") {
         const out = await resetToBaseline({ key, slug });

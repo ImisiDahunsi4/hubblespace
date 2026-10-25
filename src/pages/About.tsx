@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "../services/base44/shim";
+import { api } from "../services/base44/shim";
 import { PollWidget } from "../widgets/core";
 import { LetterWidget } from "../widgets/extras";
 import { getSpace } from "../data/spaces";

@@ -18,7 +18,7 @@ import { LookRow } from "./LookRow";
 import { JoinForm } from "./JoinForm";
 import { useAccount } from "../live/useJoin";
 import { useAvatarUpload } from "../live/useAvatarUpload";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuthActions } from "../services/base44/authHooks";
 import { PhotoInput } from "./PhotoInput";
 import { resetIdentity } from "../live/identity";
 import { canFollowPointer, type GatePointRef } from "./GateCursor";
